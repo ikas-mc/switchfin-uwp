@@ -98,7 +98,7 @@ jobs:
       run: |
         dkp-pacman --noconfirm -U $BASE_URL/hacBrewPack-3.05-1-x86_64.pkg.tar.zst
         dkp-pacman --noconfirm -U $BASE_URL/libnx-4.9.0-1-any.pkg.tar.zst
-        for pkg in curl-8.14.1-1 ffmpeg-7.1.1-6 libmpv${{ matrix.shuffix }}-0.36.0-5 nspmini-main-1; do
+        for pkg in curl-8.14.1-1 ffmpeg-7.1.1-6 mupdf-1.24.11-1 libmpv${{ matrix.shuffix }}-0.36.0-5 nspmini-main-1; do
           dkp-pacman --noconfirm -U $BASE_URL/switch-${pkg}-any.pkg.tar.zst
         done
         git config --system --add safe.directory $GITHUB_WORKSPACE
@@ -254,7 +254,7 @@ jobs:
         key: deps-${{ matrix.arch }}-${{ matrix.img }}-${{ matrix.tag }}-${{ hashFiles('debian/rules') }}
     - name: Build depends
       if: steps.cache-deps.outputs.cache-hit != 'true'
-      run: make -f debian/rules curl glfw mpv
+      run: make -f debian/rules curl glfw mpv mupdf
     - name: Build deb
       env:
         DH_QUIET: "1"
@@ -360,7 +360,7 @@ jobs:
         submodules: recursive
     - name: Install dependency
       run: |
-        for pkg in glfw-3.5.0-1 curl-8.14.1-1 mpv-0.40.0-1 libwebp-1.5.0-1; do
+        for pkg in glfw-3.5.0-1 curl-8.14.1-1 mpv-0.40.0-1 libmupdf-1.24.11-1 libwebp-1.5.0-1; do
           curl -sLO https://github.com/dragonflylee/switchfin/releases/download/mingw-packages/${MINGW_PACKAGE_PREFIX}-${pkg}-any.pkg.tar.zst
         done
         pacman -U --noconfirm *.pkg.tar.zst
