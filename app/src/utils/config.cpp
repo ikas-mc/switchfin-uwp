@@ -29,6 +29,10 @@ extern in_addr_t secondary_dns;
 #if defined(_WIN32)
 #include <shlobj.h>
 #endif
+#ifdef _WINRT_
+#include <winrt/windows.storage.h>
+#include <winrt/windows.applicationmodel.core.h>
+#endif
 
 constexpr uint32_t MINIMUM_WINDOW_WIDTH = 640;
 constexpr uint32_t MINIMUM_WINDOW_HEIGHT = 360;
@@ -155,6 +159,7 @@ static std::string generateDeviceId() {
             cid[0xA], cid[0xB], cid[0xC], cid[0xD], cid[0xE], cid[0xF]);
         return text;
     }
+#elif defined(_WINRT_)
 #elif defined(_WIN32)
     HW_PROFILE_INFOW profile;
     if (GetCurrentHwProfileW(&profile)) {
@@ -193,12 +198,18 @@ static std::string generateDeviceId() {
 }
 
 bool AppConfig::init() {
-    const std::string path = this->configDir() + "/config.json";
-#if !defined(USE_BOOST_FILESYSTEM) || defined(_WIN32)
+    
+#if  defined (_WINRT_)
+    const std::string path = this->configDir () + "\\config.json";
+    std::ifstream f (path);
+#elif !defined(USE_BOOST_FILESYSTEM) || defined(_WIN32)
+    const std::string path = this->configDir () + "/config.json";
     std::ifstream f(fs::u8path(path));
 #else
+    const std::string path = this->configDir () + "/config.json";
     std::ifstream f(path);
 #endif
+    
     if (f.is_open()) {
         try {
             nlohmann::json::parse(f).get_to(*this);
@@ -434,7 +445,9 @@ void AppConfig::save() {
     try {
         std::string dir = this->configDir();
         fs::create_directories(dir);
-#if !defined(USE_BOOST_FILESYSTEM) || defined(_WIN32)
+#if  defined (_WINRT_)
+        std::ofstream f (dir + "/config.json");
+#elif !defined(USE_BOOST_FILESYSTEM) || defined(_WIN32)
         std::ofstream f(fs::u8path(dir + "/config.json"));
 #else
         std::ofstream f(dir + "/config.json");
@@ -506,6 +519,9 @@ std::string AppConfig::configDir() {
     return fmt::format("/data/{}", AppVersion::getPackageName());
 #elif defined(__PSV__)
     return fmt::format("ux0:/data/{}", AppVersion::getPackageName());
+#elif _WINRT_
+    std::string localAppDataPath = winrt::to_string (winrt::Windows::Storage::AppDataPaths::GetDefault ().LocalAppData ());
+    return fmt::format ("{}\\{}", localAppDataPath, "config");
 #elif _WIN32
     WCHAR wpath[MAX_PATH];
     std::vector<char> lpath(MAX_PATH);
@@ -524,7 +540,9 @@ std::string AppConfig::configDir() {
 }
 
 std::string AppConfig::ipcSocket() {
-#ifdef _WIN32
+#if defined(_WINRT_)
+    return "";
+#elif defined(_WIN32)
     return "\\\\.\\pipe\\" + AppVersion::getPackageName();
 #else
     return fmt::format("{}/{}.sock", configDir(), AppVersion::getPackageName());
@@ -533,6 +551,7 @@ std::string AppConfig::ipcSocket() {
 
 void AppConfig::checkRestart(char* argv[]) {
 #if defined(__PS4__) || defined(__PSV__) || defined(ANDROID)
+#elif _WINRT_
 #elif defined(__APPLE__) || defined(__linux__) || defined(_WIN32)
     if (brls::DesktopPlatform::RESTART_APP) {
         brls::Logger::info("Restart app {}", argv[0]);

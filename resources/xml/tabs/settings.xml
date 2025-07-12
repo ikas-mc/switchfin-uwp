@@ -98,7 +98,6 @@
                     visibility="gone" />
                 <brls:InputCell
                     id="setting/network/proxy_passwd"
-                    type="password"
                     visibility="gone" />
             </brls:Box>
 

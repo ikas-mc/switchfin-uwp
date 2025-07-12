@@ -187,7 +187,9 @@ std::vector<std::string> misc::split(const std::string& data, char seq) {
 }
 
 bool misc::sendIPC(const std::string& sock, const std::string& payload) {
-#ifdef _WIN32
+#ifdef _WINRT_
+    return false;
+#elif _WIN32
     HANDLE hPipe = CreateFile(sock.c_str(), GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
     if (hPipe == INVALID_HANDLE_VALUE) return false;
 

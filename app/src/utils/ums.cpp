@@ -55,7 +55,8 @@ int Ums::init() {
     this->devices.push_back(Device{.id = -1, .name = "Memory Stock", .mount = "ux0:"});
     return 0;
 }
-
+#elif defined(_WINRT_)
+int Ums::init () { return 0; }
 #elif defined(_WIN32)
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

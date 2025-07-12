@@ -15,7 +15,7 @@
 
         <brls:InputCell
             id="server/pass"
-            type="password" />
+             />
 
         <brls:Button
             text="@i18n/main/setting/server/signin"
