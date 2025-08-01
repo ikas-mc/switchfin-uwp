@@ -64,8 +64,8 @@ void MusicView::registerMpvEvent() {
                 std::string key = fmt::format("playlist/{}/id", mpv.getInt("playlist-playing-pos"));
                 auto it = playList.find(mpv.getInt(key));
                 if (it != playList.end()) {
-                    this->playTitle->setText(it->second.second);
-                    this->itemId = it->second.first;
+                    this->playTitle->setText(it->second.Title);
+                    this->itemId = it->second.Id;
                     mpv.getCustomEvent()->fire(TRACK_START, &it->second);
                 }
             }
@@ -98,7 +98,7 @@ void MusicView::registerMpvEvent() {
     // 注冊命令回調
     replySubscribeID = mpv.getCommandReply()->subscribe([this](uint64_t userdata, int64_t entryId) {
         auto item = reinterpret_cast<jellyfin::Item*>(userdata);
-        if (item) playList.insert(std::make_pair(entryId, std::make_pair(item->Id, item->Name)));
+        if (item) playList.insert(std::make_pair(entryId, item));
     });
 
     brls::Logger::info("MusicView: registerMpvEvent {}", this->playSession);

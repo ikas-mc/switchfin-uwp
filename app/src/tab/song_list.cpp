@@ -91,11 +91,12 @@ SongList::SongList(const std::string& itemId) : itemId(itemId) {
     auto mpvce = MPVCore::instance().getCustomEvent();
     this->customEventSubscribeID = mpvce->subscribe([this](const std::string& event, void* data) {
         if (event == TRACK_START) {
-            auto item = reinterpret_cast<jellyfin::Item*>(data);
+            auto item = reinterpret_cast<MusicView::Track*>(data);
             for (auto i : this->list->getGridItems()) {
                 auto* cell = dynamic_cast<SongCell*>(i);
                 if (cell) cell->setSelected(item->Id);
             }
+            brls::Logger::info("SongList {} play {}", item->Title, item->ImageTag);
         }
     });
 }
