@@ -3,6 +3,7 @@
     "home": "首页",
     "genres": "类型",
     "suggest": "建议",
+    "songs": "歌曲",
     "search": "搜索",
     "setting": "设置"
   },
@@ -125,7 +126,7 @@
       "detail": "服务器详情",
       "connect_new": "新服务器",
       "connect_to": "连接至Jellyfin服务器",
-      "invalid": "服务器地址无效！",
+      "invalid": "URL 必须以 http:// 或 https:// 开头",
       "connect": "连接",
       "delete": "是否删除？",
       "local": "本地服务器",
@@ -146,6 +147,7 @@
       "touch_gesture": "启用播放进度手势",
       "clip_point": "进度条显示章节位置",
       "transcodec": "转码格式",
+      "audio_channels": "音频通道",
       "video_quality": "视频质量",
       "subsync": "字幕同步"
     },

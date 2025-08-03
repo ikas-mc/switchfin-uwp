@@ -3,6 +3,7 @@
     "home": "Home",
     "genres": "Genres",
     "suggest": "Vorschläge",
+    "songs": "Lieder",
     "search": "Suche",
     "setting": "Einstellungen"
   },
@@ -65,7 +66,8 @@
       "hwdec": "Hardwaredekodierung",
       "osd_on_toggle": "Zeige OSD wenn pausiert",
       "transcodec": "Transcodec",
-      "maxbitrate": "Max Bitrate"
+      "maxbitrate": "Max Bitrate",
+      "audio_channels": "Audiokanäle"
     },
     "network": {
       "header": "Netzwerk",

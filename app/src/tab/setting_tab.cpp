@@ -199,6 +199,18 @@ void SettingTab::onCreate() {
         });
 #endif
 
+#if defined(__PS4__) || defined(__PSV__)
+    selectorAudioChannels->setVisibility(brls::Visibility::GONE);
+#else
+    auto& audioChannelsOption = conf.getOptions(AppConfig::AUDIO_CHANNELS);
+    selectorAudioChannels->init("main/setting/playback/audio_channels"_i18n, {"Auto", "Stereo", "Mono"},
+        conf.getOptionIndex(AppConfig::AUDIO_CHANNELS), [&audioChannelsOption](int selected) {
+            MPVCore::AUDIO_CHANNELS = audioChannelsOption.options[selected];
+            AppConfig::instance().setItem(AppConfig::AUDIO_CHANNELS, MPVCore::AUDIO_CHANNELS);
+            MPVCore::instance().restart();
+        });
+#endif
+
     auto& inmemoryOption = conf.getOptions(AppConfig::PLAYER_INMEMORY_CACHE);
     selectorInmemory->init("main/setting/playback/in_memory_cache"_i18n, inmemoryOption.options,
         conf.getValueIndex(AppConfig::PLAYER_INMEMORY_CACHE, 1), [&inmemoryOption](int selected) {

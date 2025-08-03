@@ -14,12 +14,7 @@ class VideoProgressSlider;
 class SVGImage;
 
 class MusicView : public brls::Box, public brls::Singleton<MusicView> {
-
-enum RepeatMode {
-    RepeatNone,
-    RepeatOne,
-    RepeatAll
-};
+    enum RepeatMode { RepeatNone, RepeatOne, RepeatAll };
 
 public:
     MusicView();
@@ -31,11 +26,21 @@ public:
 
     const std::string& currentId();
 
-    void play(const jellyfin::Item& item);
-
     void load(const std::vector<jellyfin::Track>& items, size_t index);
 
     void load(const std::vector<remote::DirEntry>& items, size_t index, const std::string& extra);
+
+public:
+    struct Track {
+        std::string Id;
+        std::string Title;
+        std::string ImageTag;
+
+        Track(jellyfin::Item* item) : Id(item->Id), Title(item->Name) {
+            auto it = item->ImageTags.find(jellyfin::imageTypePrimary);
+            if (it != item->ImageTags.end()) this->ImageTag = it->second;
+        }
+    };
 
 private:
     BRLS_BIND(brls::Box, btnPrev, "music/prev");
@@ -63,8 +68,7 @@ private:
     MPVEvent::Subscription eventSubscribeID;
     MPVCommandReply::Subscription replySubscribeID;
 
-    using Entry = std::pair<std::string, std::string>;
-    using MusicList = std::unordered_map<int64_t, Entry>;
+    using MusicList = std::unordered_map<int64_t, Track>;
     int64_t playSession = 0;
     std::string itemId;
     MusicList playList;

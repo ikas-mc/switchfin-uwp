@@ -64,8 +64,8 @@ void MusicView::registerMpvEvent() {
                 std::string key = fmt::format("playlist/{}/id", mpv.getInt("playlist-playing-pos"));
                 auto it = playList.find(mpv.getInt(key));
                 if (it != playList.end()) {
-                    this->playTitle->setText(it->second.second);
-                    this->itemId = it->second.first;
+                    this->playTitle->setText(it->second.Title);
+                    this->itemId = it->second.Id;
                     mpv.getCustomEvent()->fire(TRACK_START, &it->second);
                 }
             }
@@ -97,8 +97,8 @@ void MusicView::registerMpvEvent() {
     });
     // 注冊命令回調
     replySubscribeID = mpv.getCommandReply()->subscribe([this](uint64_t userdata, int64_t entryId) {
-        auto item = reinterpret_cast<jellyfin::Track*>(userdata);
-        if (item) playList.insert(std::make_pair(entryId, std::make_pair(item->Id, item->Name)));
+        auto item = reinterpret_cast<jellyfin::Item*>(userdata);
+        if (item) playList.insert(std::make_pair(entryId, item));
     });
 
     brls::Logger::info("MusicView: registerMpvEvent {}", this->playSession);
@@ -140,29 +140,6 @@ void MusicView::registerViewAction(brls::View* view) {
 }
 
 const std::string& MusicView::currentId() { return this->itemId; }
-
-void MusicView::play(const jellyfin::Item& item) {
-    auto& conf = AppConfig::instance();
-    auto& mpv = MPVCore::instance();
-
-    if (!this->playSession) this->registerMpvEvent();
-
-    std::string query = HTTP::encode_form({
-        {"static", "true"},
-        {"PlaySessionId", std::to_string(playSession)},
-    });
-    std::stringstream ssextra;
-    std::string url = fmt::format(fmt::runtime(jellyfin::apiAudio), item.Id, query);
-    ssextra << fmt::format("network-timeout={}", HTTP::TIMEOUT / 100);
-    if (HTTP::PROXY_STATUS) ssextra << ",http-proxy=\"" << HTTP::PROXY << "\"";
-    ssextra << fmt::format(",http-header-fields='X-Emby-Token: {}'", conf.getToken());
-
-    mpv.stop();
-    mpv.enableVO(false);
-    mpv.setUrl(conf.getUrl() + url, ssextra.str());
-
-    this->playTitle->setText(item.Name);
-}
 
 void MusicView::load(const std::vector<jellyfin::Track>& items, size_t index) {
     auto& conf = AppConfig::instance();
