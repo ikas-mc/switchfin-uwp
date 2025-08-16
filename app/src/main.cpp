@@ -55,8 +55,7 @@ int main(int argc, char* argv[]) {
     setlocale (LC_ALL, ".utf8");
     setlocale (LC_NUMERIC, "C");
 
-    //TODO use config @ikas
-    brls::Logger::setLogLevel (brls::LogLevel::LOG_DEBUG);    auto appLocal = winrt::Windows::Storage::AppDataPaths::GetDefault ().LocalAppData ();
+    auto appLocal = winrt::Windows::Storage::AppDataPaths::GetDefault ().LocalAppData ();
     auto const time = std::chrono::current_zone ()->to_local (std::chrono::system_clock::now ());
     auto logFile = std::format ("{}\\switchfin.{:%Y-%m-%d-%H-%M-%S}.log", winrt::to_string (appLocal), time);
     brls::Logger::setLogOutput (std::fopen (logFile.c_str (), "w+"));
@@ -76,7 +75,16 @@ int main(int argc, char* argv[]) {
             args.Handled (true);
         });
 
-
+    //TODO
+    for (int i = 1; i < argc; i++) {
+        if (std::strcmp (argv[i], "-d") == 0) {
+            brls::Logger::setLogLevel (brls::LogLevel::LOG_DEBUG);
+        } else if (std::strcmp (argv[i], "-v") == 0) {
+            brls::Application::enableDebuggingView (true);
+        } else {
+            items.push_back (argv[i]);
+        }
+    }
 #else
 
     for (int i = 1; i < argc; i++) {
