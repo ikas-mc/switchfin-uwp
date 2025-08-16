@@ -59,6 +59,7 @@ namespace fs = std::experimental::filesystem;
 #include "utils/config.hpp"
 #include "utils/misc.hpp"
 #include "utils/ums.hpp"
+#include "utils/thread.hpp"
 #include "view/mpv_core.hpp"
 #include "view/danmaku_core.hpp"
 #include "view/video_view.hpp"
@@ -67,7 +68,7 @@ std::unordered_map<AppConfig::Item, AppConfig::Option> AppConfig::settingMap = {
     {APP_THEME, {"app_theme", {"auto", "light", "dark"}}},
     {APP_LANG, {"app_lang",
                    {brls::LOCALE_AUTO, brls::LOCALE_EN_US, brls::LOCALE_ZH_HANS, brls::LOCALE_ZH_HANT, brls::LOCALE_JA,
-                       brls::LOCALE_Ko, brls::LOCALE_DE, brls::LOCALE_PT_BR, "cs", "uk-UA", "vi_VN"}}},
+                       brls::LOCALE_Ko, brls::LOCALE_RU, brls::LOCALE_DE, brls::LOCALE_PT_BR, "cs", "uk-UA", "vi_VN"}}},
     {APP_UPDATE, {"app_update"}},
     {AUDIO_CHANNELS, {"audio-channels", {"auto-safe", "stereo", "mono"}}},
     {KEYMAP, {"keymap", {"xbox", "ps", "keyboard"}}},
@@ -319,6 +320,8 @@ bool AppConfig::init() {
     DanmakuCore::DANMAKU_STYLE_FONTSIZE = this->getItem(DANMAKU_STYLE_FONTSIZE, 30);
     DanmakuCore::DANMAKU_STYLE_LINE_HEIGHT = this->getItem(DANMAKU_STYLE_LINE_HEIGHT, 120);
     DanmakuCore::DANMAKU_STYLE_SPEED = this->getItem(DANMAKU_STYLE_SPEED, 100);
+
+    ThreadPool::max_thread_num = this->getItem(REQUEST_THREADS, ThreadPool::max_thread_num);
 
     // 初始化 deviceId
     if (this->device.empty()) this->device = generateDeviceId();

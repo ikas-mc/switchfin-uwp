@@ -27,9 +27,10 @@
 #include "tab/media_folder.hpp"
 #include "tab/search_tab.hpp"
 #include "tab/remote_tab.hpp"
+#include "tab/remote_view.hpp"
 #include "tab/setting_tab.hpp"
 
-#if defined(IOS) || defined(ANDROID)
+#if defined(__SDL2__)
 #include <SDL2/SDL_main.h>
 #endif
 
@@ -41,22 +42,21 @@
 #include <winrt/Windows.ApplicationModel.Core.h>
 #include <winrt/Windows.Storage.Streams.h>
 #include <winrt/Windows.UI.ViewManagement.h>
+#include <winrt/windows.applicationmodel.activation.h>
 #include <borealis/platforms/winrt/winrt_app.hpp>
 #endif
 
 using namespace brls::literals;  // for _i18n
 
 int main(int argc, char* argv[]) {
-    std::string itemId;
+    std::vector<std::string> items;
 
 #ifdef __WINRT_NEW__
     setlocale (LC_ALL, ".utf8");
     setlocale (LC_NUMERIC, "C");
 
     //TODO use config @ikas
-    brls::Logger::setLogLevel (brls::LogLevel::LOG_DEBUG);
-
-    auto appLocal = winrt::Windows::Storage::AppDataPaths::GetDefault ().LocalAppData ();
+    brls::Logger::setLogLevel (brls::LogLevel::LOG_DEBUG);    auto appLocal = winrt::Windows::Storage::AppDataPaths::GetDefault ().LocalAppData ();
     auto const time = std::chrono::current_zone ()->to_local (std::chrono::system_clock::now ());
     auto logFile = std::format ("{}\\switchfin.{:%Y-%m-%d-%H-%M-%S}.log", winrt::to_string (appLocal), time);
     brls::Logger::setLogOutput (std::fopen (logFile.c_str (), "w+"));
@@ -76,23 +76,24 @@ int main(int argc, char* argv[]) {
             args.Handled (true);
         });
 
+
 #else
 
     for (int i = 1; i < argc; i++) {
-        if (std::strcmp(argv[i], "-d") == 0) {
-            brls::Logger::setLogLevel(brls::LogLevel::LOG_DEBUG);
-        } else if (std::strcmp(argv[i], "-v") == 0) {
-            brls::Application::enableDebuggingView(true);
-        } else if (std::strcmp(argv[i], "-t") == 0) {
+        if (std::strcmp (argv[i], "-d") == 0) {
+            brls::Logger::setLogLevel (brls::LogLevel::LOG_DEBUG);
+        } else if (std::strcmp (argv[i], "-v") == 0) {
+            brls::Application::enableDebuggingView (true);
+        } else if (std::strcmp (argv[i], "-t") == 0) {
             MPVCore::DEBUG = true;
-        } else if (std::strcmp(argv[i], "-o") == 0) {
+        } else if (std::strcmp (argv[i], "-o") == 0) {
             const char* path = (i + 1 < argc) ? argv[++i] : "switchfin.log";
-            brls::Logger::setLogOutput(std::fopen(path, "w+"));
-        } else if (std::strcmp(argv[i], "-i") == 0) {
-            if (i + 1 < argc) itemId = argv[++i];
-        } else if (std::strcmp(argv[i], "-version") == 0) {
-            brls::Logger::info("{} {}", AppVersion::getDeviceName(), AppVersion::getCommit());
+            brls::Logger::setLogOutput (std::fopen (path, "w+"));
+        } else if (std::strcmp (argv[i], "-version") == 0) {
+            brls::Logger::info ("{} {}", AppVersion::getDeviceName (), AppVersion::getCommit ());
             return 0;
+        } else {
+            items.push_back (argv[i]);
         }
     }
 #endif
@@ -162,11 +163,10 @@ int main(int argc, char* argv[]) {
         brls::Application::pushActivity(new HintActivity());
     } else if (!conf.checkLogin()) {
         brls::Application::pushActivity(new ServerList());
-    } else if (itemId.empty()) {
+    } else if (items.empty()) {
         brls::Application::pushActivity(new MainActivity());
     } else {
-        //brls::View* view = new VideoView(itemId);
-        //brls::sync([view]() { brls::Application::giveFocus(view); });
+        RemoteView::play(items.front());
     }
 
     GA("open_app",

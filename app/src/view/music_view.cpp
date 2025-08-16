@@ -97,7 +97,7 @@ void MusicView::registerMpvEvent() {
     });
     // 注冊命令回調
     replySubscribeID = mpv.getCommandReply()->subscribe([this](uint64_t userdata, int64_t entryId) {
-        auto item = reinterpret_cast<jellyfin::Item*>(userdata);
+        auto item = reinterpret_cast<jellyfin::Track*>(userdata);
         if (item) playList.insert(std::make_pair(entryId, item));
     });
 

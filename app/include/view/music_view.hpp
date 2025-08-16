@@ -34,11 +34,14 @@ public:
     struct Track {
         std::string Id;
         std::string Title;
+        std::string Album;
+        std::string ImageId;
         std::string ImageTag;
 
-        Track(jellyfin::Item* item) : Id(item->Id), Title(item->Name) {
-            auto it = item->ImageTags.find(jellyfin::imageTypePrimary);
-            if (it != item->ImageTags.end()) this->ImageTag = it->second;
+        Track(jellyfin::Track* item) : Id(item->Id), Title(item->Name) {
+            this->Album = item->Album;
+            this->ImageId = item->AlbumId;
+            this->ImageTag = item->AlbumPrimaryImageTag;
         }
     };
 
