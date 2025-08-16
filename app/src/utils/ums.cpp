@@ -82,6 +82,9 @@ int Ums::init () {
             for (auto const& folder : folders) {
                 std::string name = winrt::to_string (folder.Name ());
                 std::string path = winrt::to_string (folder.Path ());
+                if (path.ends_with ("\\")) {
+                    path = path.substr (0, path.size() - 1);
+                }
                 this->devices.push_back (Device{ .id = id--, .name = name, .mount = path });
             }
         }
