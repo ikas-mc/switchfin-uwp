@@ -1,5 +1,10 @@
 #include "utils/ums.hpp"
-
+#ifdef __WINRT__
+#include <ppltasks.h>
+#include <winrt/windows.storage.h>
+#include <winrt/windows.applicationmodel.core.h>
+#include <winrt/windows.foundation.collections.h>
+#endif
 #ifdef USE_LIBUSBHSFS
 #include <usbhsfs.h>
 
@@ -56,7 +61,35 @@ int Ums::init() {
     return 0;
 }
 #elif defined(_WINRT_)
-int Ums::init () { return 0; }
+int Ums::init () { 
+    concurrency::create_task ([&] {
+        int id = -1;
+        std::string appDataPath = winrt::to_string (winrt::Windows::Storage::AppDataPaths::GetDefault ().LocalAppData ());
+        this->devices.push_back (Device{ .id = id--, .name = "Local Data", .mount = appDataPath });
+
+        std::string videosPath = winrt::to_string (winrt::Windows::Storage::KnownFolders::VideosLibrary ().Path ());
+        if (!videosPath.empty ()) {
+            this->devices.push_back (Device{ .id = id--, .name = "Videos", .mount = videosPath });
+        }
+        std::string musicPath = winrt::to_string (winrt::Windows::Storage::KnownFolders::MusicLibrary ().Path ());
+        if (!musicPath.empty ()) {
+            this->devices.push_back (Device{ .id = id--, .name = "Music", .mount = musicPath });
+        }
+
+        auto removableDevices = winrt::Windows::Storage::KnownFolders::RemovableDevices ();
+        if (removableDevices) {
+            auto folders = removableDevices.GetFoldersAsync ().get ();
+            for (auto const& folder : folders) {
+                std::string name = winrt::to_string (folder.Name ());
+                std::string path = winrt::to_string (folder.Path ());
+                this->devices.push_back (Device{ .id = id--, .name = name, .mount = path });
+            }
+        }
+        this->event.fire (this->devices);
+        });
+   
+    return 0;
+}
 #elif defined(_WIN32)
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
