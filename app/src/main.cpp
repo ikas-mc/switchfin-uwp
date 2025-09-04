@@ -55,17 +55,15 @@ int main(int argc, char* argv[]) {
     setlocale (LC_ALL, ".utf8");
     setlocale (LC_NUMERIC, "C");
 
-    auto appLocal = winrt::Windows::Storage::AppDataPaths::GetDefault ().LocalAppData ();
-    auto const time = std::chrono::current_zone ()->to_local (std::chrono::system_clock::now ());
-    auto logFile = std::format ("{}\\switchfin.{:%Y-%m-%d-%H-%M-%S}.log", winrt::to_string (appLocal), time);
-    brls::Logger::setLogOutput (std::fopen (logFile.c_str (), "w+"));
-
-    if (IsDebuggerPresent ()) {
-        brls::Logger::getLogEvent ()->subscribe ([](brls::Logger::TimePoint now, brls::LogLevel level, const std::string& log) {
-            auto message = std::format (L"[{}] {}\n", (int)level, winrt::to_hstring (log));
-            OutputDebugString (message.c_str ());
+#if _DEBUG
+    if (IsDebuggerPresent())
+    {
+        brls::Logger::getLogEvent()->subscribe([](brls::Logger::TimePoint now, brls::LogLevel level, const std::string& log) {
+            auto message=std::format(L"[{}] {}\n", (int)level, winrt::to_hstring(log));
+            OutputDebugString(message.c_str());
             });
     }
+#endif
 
     //for xbox 
     winrt::Windows::UI::Core::SystemNavigationManager::GetForCurrentView ().BackRequested ([] (
@@ -75,16 +73,30 @@ int main(int argc, char* argv[]) {
             args.Handled (true);
         });
 
+    bool enableDebug=false;
+#if _DEBUG
+    enableDebug=true;
+#endif 
+
     //TODO
     for (int i = 1; i < argc; i++) {
         if (std::strcmp (argv[i], "-d") == 0) {
-            brls::Logger::setLogLevel (brls::LogLevel::LOG_DEBUG);
-        } else if (std::strcmp (argv[i], "-v") == 0) {
-            brls::Application::enableDebuggingView (true);
+            enableDebug=true;
+            brls::Application::enableDebuggingView(true);
         } else {
             items.push_back (argv[i]);
         }
     }
+
+    if (enableDebug)
+    {
+        brls::Logger::setLogLevel(brls::LogLevel::LOG_DEBUG);
+        auto appLocal=winrt::Windows::Storage::AppDataPaths::GetDefault().LocalAppData();
+        auto const time=std::chrono::current_zone()->to_local(std::chrono::system_clock::now());
+        auto logFile=std::format("{}\\switchfin.{:%Y-%m-%d-%H-%M-%S}.log", winrt::to_string(appLocal), time);
+        brls::Logger::setLogOutput(std::fopen(logFile.c_str(), "w+"));
+    }
+
 #else
 
     for (int i = 1; i < argc; i++) {

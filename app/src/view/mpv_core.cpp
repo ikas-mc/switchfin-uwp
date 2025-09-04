@@ -92,6 +92,19 @@ void MPVCore::init() {
     // misc
     mpv_set_option_string(mpv, "config", "yes");
     mpv_set_option_string(mpv, "config-dir", confDir.c_str());
+
+    // logs
+    if (brls::Logger::getLogLevel() >= brls::LogLevel::LOG_VERBOSE)
+    {
+        mpv_set_option_string(mpv, "log-file", "~~/mpv.log");
+        mpv_set_option_string(mpv, "msg-level", "all=trace");
+    }
+    else if (brls::Logger::getLogLevel() >= brls::LogLevel::LOG_DEBUG)
+    {
+        mpv_set_option_string(mpv, "log-file", "~~/mpv.log");
+        mpv_set_option_string(mpv, "msg-level", "all=debug");
+    }
+
     mpv_set_option_string(mpv, "sub-fonts-dir", confDir.c_str());
     mpv_set_option_string(mpv, "watch-later-dir", fmt::format("{}/watch-later", confDir).c_str());
     mpv_set_option_string(mpv, "gpu-shader-cache-dir", fmt::format("{}/cache", confDir).c_str());
