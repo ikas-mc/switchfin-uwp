@@ -12,6 +12,7 @@
 #include "tab/suggest_show.hpp"
 #include "tab/suggest_movie.hpp"
 #include "tab/song_list.hpp"
+#include "utils/keybind.hpp"
 #include <fmt/ranges.h>
 
 using namespace brls::literals;  // for _i18n
@@ -83,6 +84,55 @@ public:
     }
 };
 
+class ArtistsTab : public RecyclingGrid {
+public:
+    ArtistsTab(const std::string& itemId) : itemId(itemId) {
+        this->setGrow(1.f);
+        this->registerCell("Cell", VideoCardCell::create);
+        this->spanCount = 6;
+
+        this->onNextPage([this] { this->doRequest(); });
+        this->doRequest();
+    }
+
+    void doRequest() {
+        std::string query = HTTP::encode_form({
+            {"userId", AppConfig::instance().getUserId()},
+            {"parentId", this->itemId},
+            {"limit", std::to_string(this->pageSize)},
+            {"startIndex", std::to_string(this->start)},
+            {"enableImageTypes", "Primary"},
+            {"recursive", "true"},
+        });
+
+        ASYNC_RETAIN
+        jellyfin::getJSON<jellyfin::Result<jellyfin::Episode>>(
+            [ASYNC_TOKEN](const jellyfin::Result<jellyfin::Episode>& r) {
+                ASYNC_RELEASE
+                this->start = r.StartIndex + this->pageSize;
+                if (r.TotalRecordCount == 0) {
+                    this->clearData();
+                } else if (r.StartIndex == 0) {
+                    this->setDataSource(new VideoDataSource(r.Items, this->itemId));
+                } else if (r.Items.size() > 0) {
+                    auto dataSrc = dynamic_cast<VideoDataSource*>(this->getDataSource());
+                    dataSrc->appendData(r.Items);
+                    this->notifyDataChanged();
+                }
+            },
+            [ASYNC_TOKEN](const std::string& ex) {
+                ASYNC_RELEASE
+                this->setError(ex);
+            },
+            jellyfin::apiArtists, query);
+    }
+
+private:
+    std::string itemId;
+    size_t start = 0;
+    size_t pageSize = 60;
+};
+
 MediaCollection::MediaCollection(const std::string& itemId, const std::string& itemType, const std::string& genresId)
     : itemId(itemId), genresId(genresId), itemType(itemType), startIndex(0) {
     brls::Logger::debug("MediaCollection: create {} type {}", itemId, itemType);
@@ -98,21 +148,7 @@ MediaCollection::MediaCollection(const std::string& itemId, const std::string& i
         item->setLabel("main/tabs/genres"_i18n);
         this->tabFrame->addTab(item, [this]() { return new GenresTab(this->itemId, this->itemType); });
 
-        this->registerAction(
-            "main/player/next"_i18n, brls::BUTTON_LB,
-            [this](brls::View* view) {
-                tabFrame->focus2LastTab();
-                return true;
-            },
-            true);
-
-        this->registerAction(
-            "main/player/prev"_i18n, brls::BUTTON_RB,
-            [this](brls::View* view) {
-                tabFrame->focus2NextTab();
-                return true;
-            },
-            true);
+        this->tabFrame->registerTabAction(this);
 
         // add suggest tab
         item = new AutoSidebarItem();
@@ -125,6 +161,12 @@ MediaCollection::MediaCollection(const std::string& itemId, const std::string& i
             item->setLabel("main/tabs/suggest"_i18n);
             this->tabFrame->addTab(item, [this]() { return new SuggestMovie(this->itemId); });
         } else if (itemType == jellyfin::mediaTypeMusicAlbum) {
+            item->setLabel("main/tabs/artists"_i18n);
+            this->tabFrame->addTab(item, [this]() { return new ArtistsTab(this->itemId); });
+
+            item = new AutoSidebarItem();
+            item->setTabStyle(AutoTabBarStyle::ACCENT);
+            item->setFontSize(18);
             item->setLabel("main/tabs/songs"_i18n);
             this->tabFrame->addTab(item, [this]() { return new SongList(this->itemId); });
         }
@@ -139,10 +181,16 @@ MediaCollection::MediaCollection(const std::string& itemId, const std::string& i
 
     std::string serverUrl = AppConfig::instance().getUrl();
     this->prefKey = fmt::format("{}/web/index.html{}", serverUrl, itemType);
-    std::transform(this->prefKey.begin(), this->prefKey.end(), this->prefKey.begin(),
-        [](unsigned char c) { return std::tolower(c); });
+    std::transform(this->prefKey.begin(), this->prefKey.end(), this->prefKey.begin(), ::tolower);
 
     this->recycler->registerAction("hints/refresh"_i18n, brls::BUTTON_BACK, [this](...) {
+        this->startIndex = 0;
+        this->recycler->showSkeleton();
+        this->doRequest();
+        return true;
+    });
+
+    this->registerAction(KeyBind::getRefresh(), [this](...) {
         this->startIndex = 0;
         this->recycler->showSkeleton();
         this->doRequest();

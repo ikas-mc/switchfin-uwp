@@ -3,6 +3,7 @@
     "home": "Home",
     "genres": "Genres",
     "suggest": "Suggestions",
+    "artists": "Artists",
     "songs": "Songs",
     "search": "Search",
     "setting": "Setting"
@@ -153,6 +154,10 @@
     },
     "transcode": {
       "header": "Transcode"
+    },
+    "control": {
+      "header": "Control",
+      "tv_osd": "TV style OSD control"
     },
     "filter": {
       "mirror": "Video flip",

@@ -3,6 +3,7 @@
     "home": "首页",
     "genres": "类型",
     "suggest": "建议",
+    "artists": "艺术家",
     "songs": "歌曲",
     "search": "搜索",
     "setting": "设置"
@@ -153,6 +154,10 @@
     },
     "transcode": {
       "header": "转码配置"
+    },
+    "control": {
+      "header": "播放控制",
+      "tv_osd": "电视风格播放器"
     },
     "filter": {
       "mirror": "镜像画面",

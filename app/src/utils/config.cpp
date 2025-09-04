@@ -57,6 +57,7 @@ namespace fs = std::experimental::filesystem;
 #include <borealis/views/edit_text_dialog.hpp>
 #include "api/jellyfin.hpp"
 #include "utils/config.hpp"
+#include "utils/keybind.hpp"
 #include "utils/misc.hpp"
 #include "utils/ums.hpp"
 #include "utils/thread.hpp"
@@ -95,6 +96,7 @@ std::unordered_map<AppConfig::Item, AppConfig::Option> AppConfig::settingMap = {
     {PLAYER_HWDEC, {"player_hwdec"}},
     {PLAYER_HWDEC_CUSTOM, {"player_hwdec_custom"}},
     {PLAYER_ASPECT, {"player_aspect", {"auto", "stretch", "crop", "4:3", "16:9"}}},
+    {PLAYER_TV_MODE, {"player_tv_mode"}},
     {DANMAKU, {"danmaku"}},
     {DANMAKU_ON, {"danmaku_on"}},
     {DANMAKU_STYLE_AREA, {"danmaku_style_area", {"1/4", "1/2", "3/4", "1"}, {25, 50, 75, 100}}},
@@ -135,6 +137,20 @@ std::unordered_map<AppConfig::Item, AppConfig::Option> AppConfig::settingMap = {
     {REQUEST_TIMEOUT, {"request_timeout", {"1000", "2000", "3000", "5000"}, {1000, 2000, 3000, 5000}}},
     {HTTP_PROXY_STATUS, {"http_proxy_status"}},
     {HTTP_PROXY, {"http_proxy"}},
+
+    {KEY_REFRESH, {"key_refresh"}},
+    {KEY_LAST, {"key_last"}},
+    {KEY_NEXT, {"key_next"}},
+    {KEY_VOLUME_UP, {"key_volume_up"}},
+    {KEY_VOLUME_DOWN, {"key_volume_down"}},
+    {KEY_VIDEO_PROFILE, {"key_video_profile"}},
+    {KEY_DANMAKU, {"key_danmaku"}},
+    {KEY_FORWARD, {"key_forward"}},
+    {KEY_REWIND, {"key_rewind"}},
+    {KEY_SETTING, {"key_setting"}},
+    {KEY_VIDEO_QUALITY, {"key_video_quality"}},
+    {KEY_VIDEO_SPEED, {"key_video_speed"}},
+    {KEY_VIDEO_PAUSE, {"key_video_pause"}},
 };
 
 static std::string generateDeviceId() {
@@ -304,14 +320,13 @@ bool AppConfig::init() {
     MPVCore::HARDWARE_DEC = this->getItem(PLAYER_HWDEC, true);
     MPVCore::FORCE_DIRECTPLAY = this->getItem(FORCE_DIRECTPLAY, false);
     MPVCore::VIDEO_CODEC = this->getItem(TRANSCODEC, MPVCore::VIDEO_CODEC);
-
     MPVCore::AUDIO_CHANNELS = this->getItem(AUDIO_CHANNELS, MPVCore::AUDIO_CHANNELS);
-
     // 初始化自定义的硬件加速方案
     MPVCore::PLAYER_HWDEC_METHOD = this->getItem(PLAYER_HWDEC_CUSTOM, MPVCore::PLAYER_HWDEC_METHOD);
 
     // 初始化视频比例
     MPVCore::VIDEO_ASPECT = this->getItem(PLAYER_ASPECT, MPVCore::VIDEO_ASPECT);
+    MPVCore::OSD_TV_MODE = this->getItem(PLAYER_TV_MODE, false);
 
     // 初始化弹幕相关内容
     DanmakuCore::DANMAKU_ON = this->getItem(DANMAKU_ON, true);
@@ -331,6 +346,22 @@ bool AppConfig::init() {
 
     brls::Application::setFPSStatus(this->getItem(SHOW_FPS, false));
     VideoContext::swapInterval = this->getItem(SWAP_INTERVAL, 1);
+
+    // 初始化 KeyBind
+    KeyBind::setLast(this->getItem(KEY_LAST, std::string{"pgup"}));
+    KeyBind::setNext(this->getItem(KEY_NEXT, std::string{"pgdn"}));
+    KeyBind::setVolumeUp(this->getItem(KEY_VOLUME_UP, std::string{"0"}));
+    KeyBind::setVolumeDown(this->getItem(KEY_VOLUME_DOWN, std::string{"9"}));
+    KeyBind::setDanmaku(this->getItem(KEY_DANMAKU, std::string{"d"}));
+    KeyBind::setVideoProfile(this->getItem(KEY_VIDEO_PROFILE, std::string{"f1"}));
+    KeyBind::setVideoQuality(this->getItem(KEY_VIDEO_QUALITY, std::string{"f2"}));
+    KeyBind::setVideoSpeed(this->getItem(KEY_VIDEO_SPEED, std::string{"f3"}));
+    KeyBind::setSetting(this->getItem(KEY_SETTING, std::string{"f4"}));
+    KeyBind::setRefresh(this->getItem(KEY_REFRESH, std::string{"f5"}));
+    KeyBind::setForward(this->getItem(KEY_FORWARD, std::string{"]"}));
+    KeyBind::setRewind(this->getItem(KEY_REWIND, std::string{"["}));
+    KeyBind::setVideoOsd(this->getItem(KEY_VIDEO_OSD, std::string{"o"}));
+    KeyBind::setVideoPause(this->getItem(KEY_VIDEO_PAUSE, std::string{"space"}));
 
     // 初始化一些在创建窗口之后才能初始化的内容
     brls::Application::getWindowCreationDoneEvent()->subscribe([this]() {
@@ -382,24 +413,14 @@ bool AppConfig::init() {
         brls::Application::getPlatform()->getInputManager()->getKeyboardKeyStateChanged()->subscribe(
             [this](brls::KeyState state) {
                 if (!state.pressed) return;
-                auto top = brls::Application::getActivitiesStack().back();
                 switch (state.key) {
-                case brls::BRLS_KBD_KEY_F:
-                    // 在编辑框弹出时不触发
-                    if (dynamic_cast<brls::EditTextDialog*>(top->getContentView())) break;
 #ifndef __APPLE__
                 case brls::BRLS_KBD_KEY_F11:
-#endif
                     VideoContext::FULLSCREEN = !this->getItem(AppConfig::FULLSCREEN, VideoContext::FULLSCREEN);
                     this->setItem(AppConfig::FULLSCREEN, VideoContext::FULLSCREEN);
                     brls::Application::getPlatform()->getVideoContext()->fullScreen(VideoContext::FULLSCREEN);
                     break;
-                case brls::BRLS_KBD_KEY_SPACE: {
-                    MPVCore::instance().togglePlay();
-                    VideoView* video = dynamic_cast<VideoView*>(top->getContentView()->getView("video"));
-                    if (video) video->showOSD(true);
-                    break;
-                }
+#endif
                 default:;
                 }
             });

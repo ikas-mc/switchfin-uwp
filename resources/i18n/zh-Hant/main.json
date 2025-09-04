@@ -3,6 +3,7 @@
     "home": "首頁",
     "genres": "風格",
     "suggest": "建議",
+    "artists": "藝人",
     "songs": "歌曲",
     "search": "搜尋",
     "setting": "設定"
@@ -157,6 +158,10 @@
     },
     "transcode": {
       "header": "轉碼設定"
+    },
+    "control": {
+      "header": "播放控制",
+      "tv_osd": "電視風格播放器"
     },
     "filter": {
       "mirror": "鏡像畫面",
