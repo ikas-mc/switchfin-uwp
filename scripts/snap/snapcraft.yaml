@@ -2,7 +2,7 @@ name: switchfin
 summary: switchfin
 description: |
   third-party PC player for Jellyfin
-version: "0.7.4"
+version: "0.7.5"
 grade: stable
 icon: ../resources/icon/icon.png
 base: core20
@@ -57,7 +57,7 @@ parts:
       - libplacebo
 
   ffmpeg:
-    source: https://ffmpeg.org/releases/ffmpeg-7.1.1.tar.xz
+    source: https://ffmpeg.org/releases/ffmpeg-7.1.2.tar.xz
     source-type: tar
     plugin: autotools
     autotools-configure-parameters:
@@ -204,7 +204,7 @@ parts:
       - -usr/share
 
   curl:
-    source: https://curl.se/download/curl-8.14.1.tar.xz
+    source: https://curl.se/download/curl-8.16.0.tar.xz
     source-type: tar
     plugin: cmake
     cmake-parameters:

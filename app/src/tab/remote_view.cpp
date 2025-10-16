@@ -60,6 +60,19 @@ public:
         mpv.command("write-watch-later-config");
     }
 
+#ifdef ANDROID
+    void willDisappear(bool resetState) override {
+        if (brls::Application::getThemeVariant() == brls::ThemeVariant::LIGHT)
+            brls::Application::getTheme().addColor("brls/clear", nvgRGBA(235, 235, 235, 255));
+        else
+            brls::Application::getTheme().addColor("brls/clear", nvgRGBA(45, 45, 45, 255));
+    }
+
+    void willAppear(bool resetState) override {
+        brls::Application::getTheme().addColor("brls/clear", nvgRGBA(0, 0, 0, 0));
+    }
+#endif
+
     void setList(const DirList& list, size_t index, const std::string& extra) {
         // 播放列表
         DirList urls;
@@ -75,7 +88,7 @@ public:
 
         playSubscribeID = view->getPlayEvent()->subscribe([this, list, urls, extra](int index) {
             if (index < 0 || index >= (int)urls.size()) {
-                return VideoView::close();
+                return VideoView::close(true);
             }
             MPVCore::instance().reset();
             auto& item = urls.at(index);
@@ -101,6 +114,11 @@ public:
         });
 
         view->getPlayEvent()->fire(index);
+    }
+
+    void setUrl(const std::string& path) {
+        playSubscribeID = view->getPlayEvent()->subscribe([](int index) { return VideoView::close(true); });
+        MPVCore::instance().setUrl(path);
     }
 
     void loadList() {
@@ -374,9 +392,7 @@ RecyclingGrid* RemoteView::newRecycler() {
 }
 
 void RemoteView::play(const std::string& path) {
-    remote::DirEntry it;
-    it.name = path;
-    RemotePlayer* view = new RemotePlayer(it);
+    RemotePlayer* view = new RemotePlayer({ remote::EntryType::VIDEO, path });
     brls::Application::pushActivity(new brls::Activity(view), brls::TransitionAnimation::NONE);
-    MPVCore::instance().setUrl(it.name);
+    view->setUrl(path);
 }

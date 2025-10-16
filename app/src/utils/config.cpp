@@ -23,6 +23,7 @@ extern in_addr_t secondary_dns;
 }
 #elif defined(ANDROID)
 #include <SDL2/SDL_system.h>
+#include <jni.h>
 #elif defined(__APPLE__) || defined(__linux__) || defined(_WIN32)
 #include <unistd.h>
 #include <borealis/platforms/desktop/desktop_platform.hpp>
@@ -150,6 +151,7 @@ std::unordered_map<AppConfig::Item, AppConfig::Option> AppConfig::settingMap = {
     {KEY_SETTING, {"key_setting"}},
     {KEY_VIDEO_QUALITY, {"key_video_quality"}},
     {KEY_VIDEO_SPEED, {"key_video_speed"}},
+    {KEY_VIDEO_OSD, {"key_video_osd"}},
     {KEY_VIDEO_PAUSE, {"key_video_pause"}},
 };
 
@@ -176,6 +178,20 @@ static std::string generateDeviceId() {
             cid[0x0], cid[0x1], cid[0x2], cid[0x3], cid[0x4], cid[0x5], cid[0x6], cid[0x7], cid[0x8], cid[0x9],
             cid[0xA], cid[0xB], cid[0xC], cid[0xD], cid[0xE], cid[0xF]);
         return text;
+    }
+
+#elif defined(ANDROID)
+    JNIEnv* env = static_cast<JNIEnv*>(SDL_AndroidGetJNIEnv());
+    jclass utilsClass = env->FindClass("org/libsdl/app/PlatformUtils");
+    if (utilsClass) {
+        jmethodID jmethod = env->GetStaticMethodID(utilsClass, "getAndroidId", "()Ljava/lang/String;");
+        jstring jname = (jstring)env->CallStaticObjectMethod(utilsClass, jmethod);
+        const char* name = env->GetStringUTFChars(jname, nullptr);
+        std::string deviceId = name;
+        env->ReleaseStringUTFChars(jname, name);
+        env->DeleteLocalRef(jname);
+        env->DeleteLocalRef(utilsClass);
+        return deviceId;
     }
 #elif defined(_WINRT_)
 #elif defined(_WIN32)
@@ -242,7 +258,7 @@ bool AppConfig::init() {
     misc::initCrashDump();
 #endif
 
-#if (defined(__APPLE__) || defined(__linux__) || defined(_WIN32)) && !defined(ANDROID)
+#if (defined(__APPLE__) || defined(__linux__) || defined(_WIN32)) && !defined(ANDROID) && !defined(TRIMUI)
     if (this->getItem(AppConfig::SINGLE, false) && misc::sendIPC(this->ipcSocket(), "{}")) {
         brls::Logger::warning("AppConfig single instance");
         return false;
@@ -365,8 +381,12 @@ bool AppConfig::init() {
 
     // 初始化一些在创建窗口之后才能初始化的内容
     brls::Application::getWindowCreationDoneEvent()->subscribe([this]() {
-        // 是否交换按键
-        if (this->getItem(APP_SWAP_ABXY, false)) {
+#if defined(TRIMUI)
+        if (this->getItem(APP_SWAP_ABXY, true))
+#else
+        if (this->getItem(APP_SWAP_ABXY, false))
+#endif
+        {
             // 对于 PSV/PS4 来说，初始化时会加载系统设置，可能在那时已经交换过按键
             // 所以这里需要读取 isSwapInputKeys 的值，而不是直接设置为 true
             brls::Application::setSwapInputKeys(!brls::Application::isSwapInputKeys());
@@ -490,6 +510,22 @@ void AppConfig::save() {
 }
 
 bool AppConfig::checkLogin() {
+    for (auto& s : this->servers) {
+        if (s.id.empty() && s.urls.size() > 0) {
+            try {
+                std::string url = s.urls.front() + jellyfin::apiPublicInfo;
+                std::string resp = HTTP::get(url, HTTP::Timeout{3000});
+                jellyfin::PublicSystemInfo info = nlohmann::json::parse(resp);
+                s.id = info.Id;
+                s.name = info.ServerName;
+                s.version = info.Version;
+            } catch (const std::exception& ex) {
+                brls::Logger::warning("AppConfig {} checkServer: {}", s.urls.front(), ex.what());
+                return false;
+            }
+        }
+    }
+
     auto is_user = [this](const AppUser& u) { return u.id == this->user_id; };
     this->user = std::find_if(this->users.begin(), this->users.end(), is_user);
     if (this->user == this->users.end()) return false;
@@ -556,7 +592,7 @@ std::string AppConfig::configDir() {
     WideCharToMultiByte(CP_UTF8, 0, wpath, std::wcslen(wpath), lpath.data(), lpath.size(), nullptr, nullptr);
     return fmt::format("{}\\{}", lpath.data(), AppVersion::getPackageName());
 #elif defined(ANDROID)
-    return SDL_AndroidGetInternalStoragePath();
+    return SDL_AndroidGetExternalStoragePath();
 #elif __linux__
     char* config_home = getenv("XDG_CONFIG_HOME");
     if (config_home) return fmt::format("{}/{}", config_home, AppVersion::getPackageName());

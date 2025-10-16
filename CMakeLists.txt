@@ -34,12 +34,14 @@ endif()
 # Add git info
 if (NOT DEFINED GIT_TAG_SHORT)
     execute_process(COMMAND git rev-parse --short HEAD
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
         TIMEOUT 5 OUTPUT_VARIABLE GIT_TAG_SHORT
         OUTPUT_STRIP_TRAILING_WHITESPACE)
 endif ()
 
 if (NOT DEFINED VERSION_BUILD)
     execute_process(COMMAND git rev-list --count --all
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
         TIMEOUT 5 OUTPUT_VARIABLE VERSION_BUILD
         OUTPUT_STRIP_TRAILING_WHITESPACE)
 endif ()
@@ -52,13 +54,13 @@ include(${BOREALIS_LIBRARY}/cmake/toolchain.cmake)
 project(Switchfin)
 set(VERSION_MAJOR "0")
 set(VERSION_MINOR "7")
-set(VERSION_ALTER "4")
+set(VERSION_ALTER "5")
 set(PROJECT_TITLEID "010ff000ffff0003")
 set(PROJECT_AUTHOR "dragonflylee")
 set(PACKAGE_NAME "org.player.switchfin")
 set(VITA_TITLEID "SWITCHFIN")
 set(PSN_TITLE_ID "SFIN00000")
-set(VITA_VERSION "00.74")
+set(VITA_VERSION "00.75")
 set(PROJECT_ICON ${CMAKE_CURRENT_SOURCE_DIR}/resources/icon/icon.jpg)
 set(PROJECT_RESOURCES ${CMAKE_CURRENT_SOURCE_DIR}/resources)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
@@ -101,13 +103,15 @@ if (USE_SYSTEM_CURL)
 else ()
     include(FetchContent)
     FetchContent_Declare(curl
-        URL https://curl.se/download/curl-8.14.1.tar.xz
+        URL https://curl.se/download/curl-8.16.0.tar.xz
         DOWNLOAD_EXTRACT_TIMESTAMP TRUE
     )
     if (WIN32)
         set(CURL_USE_SCHANNEL ON)
         set(USE_WIN32_IDN ON)
         set(ZLIB_USE_STATIC_LIBS ON)
+    elseif (PLATFORM_ANDROID)
+        set(CURL_USE_MBEDTLS ON)
     else ()
         find_package(OpenSSL REQUIRED)
         set(CURL_USE_OPENSSL ON)

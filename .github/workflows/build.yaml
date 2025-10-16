@@ -5,6 +5,7 @@ on:
     tags-ignore:
     - switch-portlibs
     - vita-packages
+    - pacbrew
     - mingw-packages
     - macos-dylib
     paths-ignore:
@@ -30,6 +31,7 @@ on:
         - psvita
         - ps4
         - flatpak
+        - android
         - aur
         - deb
       disable_builtin_nsp:
@@ -41,7 +43,7 @@ permissions:
 
 jobs:
   upload-release:
-    needs: [ build-mingw, build-nx, build-macos, build-flatpak, build-aur, build-ps4, build-vita ]
+    needs: [ build-mingw, build-nx, build-macos, build-flatpak, build-aur, build-ps4, build-vita, build-android ]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
     steps:
@@ -68,6 +70,7 @@ jobs:
           Switchfin-Vita-*/*.vpk
           Switchfin-Flatpak-*/*.flatpak
           Switchfin-Archlinux-*/*.pkg.tar.*
+          Switchfin-android-*/*.apk
         body: |
           ![download](https://img.shields.io/github/downloads/${{ github.repository }}/${{ github.ref_name }}/total?label=Downloads)
 
@@ -98,7 +101,7 @@ jobs:
       run: |
         dkp-pacman --noconfirm -U $BASE_URL/hacBrewPack-3.05-1-x86_64.pkg.tar.zst
         dkp-pacman --noconfirm -U $BASE_URL/libnx-4.9.0-1-any.pkg.tar.zst
-        for pkg in curl-8.14.1-1 ffmpeg-7.1.1-6 libmpv${{ matrix.shuffix }}-0.36.0-5 nspmini-main-1; do
+        for pkg in mbedtls-3.6.4-1 libssh2-1.11.1-1 curl-8.16.0-2 ffmpeg-7.1.2-5 libmpv${{ matrix.shuffix }}-0.36.0-5 nspmini-main-1; do
           dkp-pacman --noconfirm -U $BASE_URL/switch-${pkg}-any.pkg.tar.zst
         done
         git config --system --add safe.directory $GITHUB_WORKSPACE
@@ -129,15 +132,26 @@ jobs:
   build-ps4:
     runs-on: ubuntu-latest
     if: ${{ inputs.platform == 'ps4' || github.event_name != 'workflow_dispatch' }}
+    container:
+      image: xfangfang/pacbrew:250221
+    env:
+      BASE_URL: https://github.com/dragonflylee/switchfin/releases/download/pacbrew
     steps:
     - uses: actions/checkout@v4
       with:
         submodules: recursive
-    - name: Build
+    - name: Update dependencies
       run: |
-        docker run --rm -v $(pwd):/src -u $(id -u):$(id -g) xfangfang/wiliwili_ps4_builder \
-            "cmake -B build -DPLATFORM_PS4=ON -DVERSION_BUILD=${{ github.run_number }} && \
-             make -C build -j$(nproc)"
+        for pkg in musl-1.5-3 mbedtls-2.28.10-2 sdl2-2.0.18-19 libcurl-7.80.0-5 dav1d-1.5.1-1 ffmpeg-7.1.2-3 libmpv-0.36.0-2; do
+          pacman --noconfirm -U $BASE_URL/ps4-openorbis-${pkg}-any.pkg.tar.gz
+        done
+        git config --system --add safe.directory $GITHUB_WORKSPACE
+    - name: Build
+      env:
+        OPENORBIS: /opt/pacbrew/ps4/openorbis
+      run: |
+        cmake -B build -DPLATFORM_PS4=ON -DVERSION_BUILD=${{ github.run_number }}
+        make -C build -j$(nproc)
     - name: Upload pkg
       uses: actions/upload-artifact@v4
       with:
@@ -166,7 +180,7 @@ jobs:
       env:
         BASE_URL: https://github.com/dragonflylee/switchfin/releases/download/vita-packages
       run: |
-        for pkg in mbedtls-3.4.1-1 curl-8.14.1-2 ffmpeg-n6.0-3 mpv-0.36.0-3; do
+        for pkg in mbedtls-3.6.4-1 curl-8.16.0-2 ffmpeg-n6.0-3 mpv-0.36.0-3; do
           wget $BASE_URL/${pkg}-arm.tar.xz
         done
         vdpm libass harfbuzz fribidi freetype libpng libwebp $PWD/*-arm.tar.xz
@@ -299,7 +313,7 @@ jobs:
     - name: Install deps
       run: |
         brew install create-dmg dylibbundler
-        curl -sSL https://github.com/dragonflylee/switchfin/releases/download/macos-dylib/dylib-ffmpeg71-mpv40-${{ matrix.tag }}.tar.gz | tar zxf - -C ${{ runner.temp }}
+        curl -sSL https://github.com/dragonflylee/switchfin/releases/download/macos-dylib/dylib-ffmpeg8-mpv40-${{ matrix.tag }}.tar.gz | tar zxf - -C ${{ runner.temp }}
     - name: Build App
       env:
         DYLD_LIBRARY_PATH: ${{ runner.temp }}/lib
@@ -359,7 +373,7 @@ jobs:
         submodules: recursive
     - name: Install dependency
       run: |
-        for pkg in glfw-3.5.0-1 curl-8.14.1-1 mpv-0.40.0-1 libwebp-1.6.0-1; do
+        for pkg in glfw-3.5.0-1 curl-8.16.0-1 mpv-0.40.0-1 libwebp-1.6.0-1; do
           curl -sLO https://github.com/dragonflylee/switchfin/releases/download/mingw-packages/${MINGW_PACKAGE_PREFIX}-${pkg}-any.pkg.tar.zst
         done
         pacman -U --noconfirm *.pkg.tar.zst
@@ -398,3 +412,43 @@ jobs:
           build/Switchfin.pdb
           build/libmpv-2.dll
           build/README.md
+
+  build-android:
+    if: ${{ inputs.platform == 'android' || startsWith(github.ref, 'refs/tags/') }}
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    - uses: nttld/setup-ndk@v1
+      id: setup-ndk
+      with:
+        ndk-version: r26d
+        link-to-sdk: true
+    - name: Install dependency
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ninja-build pkg-config meson nasm
+    - name: Cache depends
+      id: cache-deps
+      uses: actions/cache@v4
+      with:
+        path: jniLibs
+        key: jniLibs-${{ hashFiles('scripts/android/Makefile') }}
+    - name: Build packages
+      if: steps.cache-deps.outputs.cache-hit != 'true'
+      run: |
+        make -C scripts/android TMPDIR=${{ runner.temp }} download
+        make -C scripts/android TMPDIR=${{ runner.temp }} ABI=armeabi-v7a \
+          ANDROID_NDK=${{ steps.setup-ndk.outputs.ndk-path }} build
+        make -C scripts/android TMPDIR=${{ runner.temp }} ABI=arm64-v8a \
+          ANDROID_NDK=${{ steps.setup-ndk.outputs.ndk-path }} build
+    - name: Build APK
+      run: |
+        ${{ github.workspace }}/library/borealis/build_libromfs_generator.sh
+        cd app/platform/android && ./gradlew assembleRelease
+    - name: Upload dist
+      uses: actions/upload-artifact@v4
+      with:
+        name: Switchfin-android-${{ github.run_number }}
+        path: app/platform/android/app/build/outputs/apk/release/*.apk
