@@ -19,6 +19,8 @@ const std::string_view apiLiveChannels = "/LiveTv/Channels?{}";
 const std::string_view apiGenres = "/Genres?{}";
 const std::string_view apiArtists = "/Artists?{}";
 const std::string_view apiMovieRecommend = "/Movies/Recommendations?{}";
+const std::string_view apiPlayedItems = "/Users/{}/PlayedItems/{}";
+const std::string_view apiFavoriteItems = "/Users/{}/FavoriteItems/{}";
 #ifdef USE_WEBP
 const std::string_view apiUserImage = "/Users/{}/Images/Primary?format=Webp&{}";
 const std::string_view apiPrimaryImage = "/Items/{}/Images/Primary?format=Webp&{}";
@@ -180,21 +182,22 @@ struct Source {
     std::string Id;
     std::string Name;
     std::string Path;
-    std::string Protocol;
     int DefaultAudioStreamIndex;
     int DefaultSubtitleStreamIndex;
     bool SupportsDirectPlay;
     bool SupportsTranscoding;
+    bool IsRemote;
+    bool IsInfiniteStream;
+    std::string ETag;
     std::string DirectStreamUrl;
     std::string TranscodingUrl;
-    std::string ETag;
     std::vector<Stream> MediaStreams;
     std::vector<Attachment> MediaAttachments;
     int64_t Bitrate;
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Source, Id, Name, Path, DefaultAudioStreamIndex,
-    DefaultSubtitleStreamIndex, SupportsDirectPlay, SupportsTranscoding, DirectStreamUrl, TranscodingUrl, ETag,
-    MediaStreams, MediaAttachments, Protocol, Bitrate);
+    DefaultSubtitleStreamIndex, SupportsDirectPlay, SupportsTranscoding, IsRemote, IsInfiniteStream, ETag,
+    DirectStreamUrl, TranscodingUrl, MediaStreams, MediaAttachments, Bitrate);
 
 struct PlaybackResult {
     std::vector<Source> MediaSources;
@@ -260,23 +263,21 @@ struct Channel : public Item {
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Channel, Id, Name, Type, ImageTags, ChannelType, CurrentProgram);
 
-template <typename T>
-struct Result {
-    std::vector<T> Items;
-    long TotalRecordCount = 0;
-    long StartIndex = 0;
+struct Session {
+    std::string Id;
+    std::string UserId;
+    std::string UserName;
+    std::string Client;
+    std::string LastActivityDate;
+    std::string DeviceName;
+    std::string DeviceId;
+    std::string ApplicationVersion;
+    std::string RemoteEndPoint;
+    std::string UserPrimaryImageTag;
+    Episode NowPlayingItem;
+    bool IsActive;
 };
-
-template <typename T>
-inline void to_json(nlohmann::json& nlohmann_json_j, const Result<T>& nlohmann_json_t) {
-    NLOHMANN_JSON_EXPAND(NLOHMANN_JSON_PASTE(NLOHMANN_JSON_TO, Items, TotalRecordCount, StartIndex))
-}
-
-template <typename T>
-inline void from_json(const nlohmann::json& nlohmann_json_j, Result<T>& nlohmann_json_t) {
-    NLOHMANN_JSON_EXPAND(NLOHMANN_JSON_PASTE(NLOHMANN_JSON_FROM, Items, TotalRecordCount, StartIndex))
-}
-
-using EpisodeResult = Result<Episode>;
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Session, Id, UserId, UserName, Client, LastActivityDate, DeviceName,
+    DeviceId, ApplicationVersion, RemoteEndPoint, UserPrimaryImageTag, NowPlayingItem, IsActive);
 
 }  // namespace jellyfin

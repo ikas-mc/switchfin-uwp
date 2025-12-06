@@ -2,7 +2,7 @@
 
 #include <borealis/core/singleton.hpp>
 #include <borealis/core/logger.hpp>
-#include <nlohmann/json.hpp>
+#include <api/jellyfin/system.hpp>
 #include <atomic>
 
 class AppVersion {
@@ -24,6 +24,8 @@ struct AppUser {
     std::string name;
     std::string access_token;
     std::string server_id;
+    bool is_admin = false;
+    jellyfin::UserConfig config;
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(AppUser, id, name, access_token, server_id);
 
@@ -79,6 +81,7 @@ public:
         PLAYER_BOTTOM_BAR,
         PLAYER_LOW_QUALITY,
         PLAYER_INMEMORY_CACHE,
+        PLAYER_SPEED,
         PLAYER_HWDEC,
         PLAYER_HWDEC_CUSTOM,
         PLAYER_ASPECT,
@@ -171,6 +174,8 @@ public:
     const std::string& getUserName() const { return this->user->name; }
     const std::string& getToken() const { return this->user->access_token; }
     const std::string& getUrl() const { return this->server_url; }
+    bool isAdmin() const { return this->user->is_admin; }
+    const jellyfin::UserConfig& userConfig() const { return this->user->config; }
     const std::vector<AppRemote>& getRemotes() const { return this->remotes; }
     const std::vector<AppServer>& getServers() const { return this->servers; }
     const std::vector<AppUser> getUsers(const std::string& id) const;

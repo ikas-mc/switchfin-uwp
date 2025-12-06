@@ -1,5 +1,28 @@
 # Changelog
 
+## [next]
+
+### Fixed
+
+* webdav client for clouddrive2
+* refactor home tab
+
+### Add
+
+* dashboard tab for view devices, activities etc.
+* video profile add subtitle codec
+
+## [0.7.7]
+
+### Fixed
+
+* switch: compatibility update for 21.0.0
+* adjust direct play logic
+
+### Add
+
+* context menu for tag favorite
+
 ## [0.7.6]
 
 ### Fixed

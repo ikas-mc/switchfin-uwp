@@ -85,8 +85,8 @@ modules:
               - --disable-blacklist
             sources:
               - type: archive
-                url: https://github.com/vcrhonek/hwdata/archive/v0.399.tar.gz
-                sha256: 74872355e14d5ddc48a0f63036227ffb5f7796a3012c6377ac1fc7432ffe2b41
+                url: https://github.com/vcrhonek/hwdata/archive/v0.402.tar.gz
+                sha256: e390fe2f5f5ef7ed9ccbe62eb7cd40d4ee2b57389e7869c0dc96433c81812e7a
 
       - name: libplacebo
         buildsystem: meson
@@ -160,8 +160,8 @@ modules:
           - --enable-libass
         sources:
           - type: archive
-            url: https://ffmpeg.org/releases/ffmpeg-7.1.2.tar.xz
-            sha256: 089bc60fb59d6aecc5d994ff530fd0dcb3ee39aa55867849a2bbc4e555f9c304
+            url: https://ffmpeg.org/releases/ffmpeg-7.1.3.tar.xz
+            sha256: f0bf043299db9e3caacb435a712fc541fbb07df613c4b893e8b77e67baf3adbe
             x-checker-data:
               type: anitya
               project-id: 5405

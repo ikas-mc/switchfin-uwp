@@ -504,7 +504,7 @@ void MPVCore::draw(brls::Rect area, float alpha) {
 #elif defined(ANDROID)
 #else
     // 只在非透明时绘制视频，可以避免退出页面时视频画面残留
-    if (alpha >= 1) {
+    if (alpha >= 1 && !this->video_stopped) {
 #ifdef BOREALIS_USE_DEKO3D
         static auto videoContext =
             dynamic_cast<brls::SwitchVideoContext *>(brls::Application::getPlatform()->getVideoContext());
@@ -570,6 +570,7 @@ void MPVCore::eventMainLoop() {
             // event 6: 开始加载文件
             brls::Logger::info("MPVCore => EVENT_START_FILE");
             mpvCoreEvent.fire(MpvEventEnum::START_FILE);
+            mpvCoreEvent.fire(MpvEventEnum::LOADING_START);
             break;
         case MPV_EVENT_PLAYBACK_RESTART:
             // event 21: 开始播放文件（一般是播放或调整进度结束之后触发）

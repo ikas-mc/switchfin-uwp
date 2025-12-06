@@ -94,6 +94,12 @@ std::unordered_map<AppConfig::Item, AppConfig::Option> AppConfig::settingMap = {
             {"0MB", "10MB", "20MB", "50MB", "100MB", "200MB", "500MB"},
             {0, 10, 20, 50, 100, 200, 500},
         }},
+    {PLAYER_SPEED,
+        {
+            "player_speed",
+            {"4x", "3x", "2x"},
+            {400, 300, 200},
+        }},
     {PLAYER_HWDEC, {"player_hwdec"}},
     {PLAYER_HWDEC_CUSTOM, {"player_hwdec_custom"}},
     {PLAYER_ASPECT, {"player_aspect", {"auto", "stretch", "crop", "4:3", "16:9"}}},
@@ -135,7 +141,8 @@ std::unordered_map<AppConfig::Item, AppConfig::Option> AppConfig::settingMap = {
     {APP_SWAP_ABXY, {"app_swap_abxy"}},
     {TEXTURE_CACHE_NUM, {"texture_cache_num"}},
     {REQUEST_THREADS, {"request_threads", {"1", "2", "4", "8"}, {1, 2, 4, 8}}},
-    {REQUEST_TIMEOUT, {"request_timeout", {"1000", "2000", "3000", "5000"}, {1000, 2000, 3000, 5000}}},
+    {REQUEST_TIMEOUT,
+        {"request_timeout", {"3000", "5000", "10000", "20000", "30000"}, {3000, 5000, 10000, 20000, 30000}}},
     {HTTP_PROXY_STATUS, {"http_proxy_status"}},
     {HTTP_PROXY, {"http_proxy"}},
 
@@ -339,7 +346,8 @@ bool AppConfig::init() {
     MPVCore::AUDIO_CHANNELS = this->getItem(AUDIO_CHANNELS, MPVCore::AUDIO_CHANNELS);
     // 初始化自定义的硬件加速方案
     MPVCore::PLAYER_HWDEC_METHOD = this->getItem(PLAYER_HWDEC_CUSTOM, MPVCore::PLAYER_HWDEC_METHOD);
-
+    // 初始化默认的倍速设定
+    MPVCore::VIDEO_SPEED = this->getItem(PLAYER_SPEED, MPVCore::VIDEO_SPEED);
     // 初始化视频比例
     MPVCore::VIDEO_ASPECT = this->getItem(PLAYER_ASPECT, MPVCore::VIDEO_ASPECT);
     MPVCore::OSD_TV_MODE = this->getItem(PLAYER_TV_MODE, false);
@@ -536,15 +544,12 @@ bool AppConfig::checkLogin() {
 
     this->server_url = it->urls.front();
     HTTP::Header header = {this->getAuth(this->user->access_token)};
-    std::string uri = this->server_url + jellyfin::apiInfo;
+    std::string uri = fmt::format("{}/Users/{}", this->server_url, this->user_id);
     try {
         std::string resp = HTTP::get(uri, header, HTTP::Timeout{});
-        jellyfin::PublicSystemInfo info = nlohmann::json::parse(resp);
-        this->addServer(AppServer{
-            .name = info.ServerName,
-            .id = info.Id,
-            .version = info.Version,
-        });
+        jellyfin::UserInfo info = nlohmann::json::parse(resp);
+        this->user->is_admin = info.Policy.IsAdministrator;
+        this->user->config = std::move(info.Configuration);
         return true;
     } catch (const std::exception& ex) {
         brls::Logger::warning("AppConfig {} checkLogin: {}", this->server_url, ex.what());
@@ -684,6 +689,8 @@ void AppConfig::addUser(const AppUser& u, const std::string& url) {
         it->name = u.name;
         it->access_token = u.access_token;
         it->server_id = u.server_id;
+        it->is_admin = u.is_admin;
+        it->config = std::move(u.config);
     } else {
         it = this->users.insert(it, u);
     }

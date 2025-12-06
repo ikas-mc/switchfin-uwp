@@ -1,0 +1,20 @@
+<brls:Box
+    highlightCornerRadius="8"
+    backgroundColor="@theme/color/grey_2"
+    axis="column"
+    padding="20"
+    justifyContent="spaceBetween">
+
+    <brls:Label
+        id="activity/time" />
+    <brls:Label
+        id="activity/name" />
+    <brls:Label
+        textColor="@theme/font/grey"
+        fontSize="16"
+        id="activity/overview" />
+    <brls:Label
+        textColor="@theme/font/grey"
+        fontSize="16"
+        id="activity/type" />
+</brls:Box>

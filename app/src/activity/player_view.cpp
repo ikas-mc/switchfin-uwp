@@ -70,7 +70,7 @@ PlayerView::PlayerView(const jellyfin::Item& item, const uint64_t seekTicks) : i
             if (PlayerSetting::selectedSubtitle > 0 && this->playMethod == jellyfin::methodDirectPlay) {
                 mpv.setInt("sid", PlayerSetting::selectedSubtitle);
             }
-            if (DanmakuCore::PLUGIN_ACTIVE && this->stream.Protocol != "Http") {
+            if (DanmakuCore::PLUGIN_ACTIVE && !this->stream.IsInfiniteStream) {
                 this->requestDanmaku();
             }
             break;
@@ -334,7 +334,7 @@ void PlayerView::playMedia(const uint64_t seekTicks) {
                 ssextra << fmt::format("network-timeout={}", HTTP::TIMEOUT / 100);
                 if (seekTicks > 0) ssextra << ",start=" << misc::sec2Time(seekTicks / jellyfin::PLAYTICKS);
 
-                if (item.Protocol == "Http" && !item.SupportsDirectPlay) {
+                if (item.IsRemote && MPVCore::FORCE_DIRECTPLAY) {
                     mpv.setUrl(item.Path, ssextra.str());
                     this->stream = std::move(item);
                     return;
@@ -435,12 +435,12 @@ void PlayerView::requestDanmaku() {
             tinyxml2::XMLError error = document.Parse(resp.c_str());
 
             if (error != tinyxml2::XMLError::XML_SUCCESS) {
-                brls::Logger::error("Error decode danmaku xml[1]: {}", std::to_string(error));
+                brls::Logger::error("Parse danmaku xml[1]: {}", std::to_string(error));
                 return;
             }
             tinyxml2::XMLElement* element = document.RootElement();
             if (!element) {
-                brls::Logger::error("Error decode danmaku xml[2]: no root element");
+                brls::Logger::error("Decode danmaku xml[2]: no root element");
                 return;
             }
 
