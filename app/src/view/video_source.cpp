@@ -47,7 +47,7 @@ RecyclingGridItem* VideoDataSource::cellForRow(RecyclingView* recycler, size_t i
     } else {
         cell->labelTitle->setText(item.Name);
 
-        if (item.Type == jellyfin::mediaTypeGenre) {
+        if (item.Type == jellyfin::mediaTypeGenre || item.Type == jellyfin::mediaTypeBook) {
             cell->labelExt->setVisibility(brls::Visibility::GONE);
         } else {
             cell->labelExt->setText(item.ProductionYear > 0 ? std::to_string(item.ProductionYear) : "");
@@ -142,5 +142,37 @@ void VideoDataSource::onContextMenu(brls::Box* recycler, size_t index) {
 void VideoDataSource::clearData() { this->list.clear(); }
 
 void VideoDataSource::appendData(const MediaList& data) {
+    this->list.insert(this->list.end(), data.begin(), data.end());
+}
+
+ProgramDataSource::ProgramDataSource(const MediaList& r) : list(std::move(r)) {
+    brls::Logger::debug("ProgramDataSource: create {}", r.size());
+}
+
+size_t ProgramDataSource::getItemCount() { return this->list.size(); }
+
+RecyclingGridItem* ProgramDataSource::cellForRow(RecyclingView* recycler, size_t index) {
+    VideoCardCell* cell = dynamic_cast<VideoCardCell*>(recycler->dequeueReusableCell("Cell"));
+    auto& item = this->list.at(index);
+    cell->labelTitle->setText(item.Name);
+    cell->labelExt->setText(item.ChannelName);
+    return cell;
+}
+
+void ProgramDataSource::onItemSelected(brls::Box* recycler, size_t index) {
+    jellyfin::Item channel;
+    auto& item = this->list.at(index);
+
+    channel.Id = item.ChannelId;
+    channel.Name = item.ChannelName;
+    channel.Type = jellyfin::mediaTypeTvChannel;
+    channel.RunTimeTicks = item.RunTimeTicks;
+    PlayerView* view = new PlayerView(channel);
+    view->setTitie(item.Name);
+}
+
+void ProgramDataSource::clearData() { this->list.clear(); }
+
+void ProgramDataSource::appendData(const MediaList& data) {
     this->list.insert(this->list.end(), data.begin(), data.end());
 }

@@ -34,6 +34,7 @@ public:
         VideoCardCell* cell = dynamic_cast<VideoCardCell*>(recycler->dequeueReusableCell("Cell"));
         auto& item = this->list.at(index);
         cell->labelTitle->setText(item.Name);
+        cell->labelExt->setVisibility(brls::Visibility::GONE);
         auto it = item.ImageTags.find(jellyfin::imageTypePrimary);
         if (it != item.ImageTags.end()) {
             Image::load(cell->picture, jellyfin::apiPrimaryImage, item.Id,
@@ -177,6 +178,8 @@ MediaCollection::MediaCollection(const std::string& itemId, const std::string& i
     this->pageSize = this->recycler->spanCount * 3;
     if (itemType == jellyfin::mediaTypeMusicAlbum) {
         this->recycler->estimatedRowHeight = 240;
+    } else if (itemType == jellyfin::mediaTypeBook) {
+        this->recycler->estimatedRowHeight = 280;
     }
 
     std::string serverUrl = AppConfig::instance().getUrl();
