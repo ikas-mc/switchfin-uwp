@@ -2,7 +2,7 @@ name: switchfin
 summary: switchfin
 description: |
   third-party PC player for Jellyfin
-version: "0.8.0"
+version: "0.8.2"
 grade: stable
 icon: ../resources/icon/icon.png
 base: core20
@@ -24,7 +24,7 @@ layout:
 
 parts:
   libmpv:
-    source: https://github.com/mpv-player/mpv/archive/v0.40.0.tar.gz
+    source: https://github.com/mpv-player/mpv/archive/v0.41.0.tar.gz
     source-type: tar
     plugin: meson
     meson-parameters:
@@ -71,6 +71,8 @@ parts:
       - --disable-programs
       - --disable-encoders
       - --disable-muxers
+      - --disable-filters
+      - --enable-filter=hflip,vflip,transpose
       - --enable-libv4l2
       - --enable-libdav1d
       - --enable-zlib
@@ -131,7 +133,7 @@ parts:
 
   dav1d:
     plugin: meson
-    source: https://downloads.videolan.org/pub/videolan/dav1d/1.5.2/dav1d-1.5.2.tar.xz
+    source: https://downloads.videolan.org/pub/videolan/dav1d/1.5.3/dav1d-1.5.3.tar.xz
     source-type: tar
     meson-parameters:
       - --prefix=/usr

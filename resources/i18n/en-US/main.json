@@ -50,7 +50,7 @@
     "toggle": "Play/Pause",
     "prev": "Prev",
     "next": "Next",
-    "error": "Play error",
+    "error": "Playback error",
     "episode": "Episode",
     "speed_up": "Current speed {}"
   },
@@ -97,6 +97,7 @@
     "play": "Play",
     "intro": "Intro",
     "people": "People",
+    "special": "Special Features",
     "similar": "More Like This",
     "date_add": "Date Add",
     "date_played": "Date Played",
@@ -170,7 +171,7 @@
       "header": "Transcode"
     },
     "control": {
-      "header": "Control",
+      "header": "Playback Control",
       "tv_osd": "TV style OSD control"
     },
     "filter": {
@@ -204,6 +205,13 @@
     },
     "ui": {
       "header": "UI",
+      "scale": {
+        "header": "UI Scale (restart required)",
+        "544p": "544p",
+        "720p": "720p",
+        "900p": "900p",
+        "1080p": "1080p"
+      },
       "vsync": "Vertical Sync",
       "show_fps": "Show FPS"
     },

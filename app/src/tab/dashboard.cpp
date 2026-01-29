@@ -4,6 +4,7 @@
 #include "utils/image.hpp"
 #include "utils/misc.hpp"
 #include "utils/dialog.hpp"
+#include "utils/keybind.hpp"
 #include "api/jellyfin.hpp"
 
 using namespace brls::literals;  // for _i18n
@@ -22,6 +23,61 @@ inline const brls::ButtonStyle BUTTONSTYLE_DANDER = {
     .disabledBackgroundColor = "color/danger",
     .disabledLabelColor = "brls/button/default_disabled_text",
     .disabledBorderColor = "",
+};
+
+// ----------------- Media Count ---------------------------
+
+using ItemCount = std::pair<std::string, long>;
+
+class ItemCountCell : public RecyclingGridItem {
+public:
+    ItemCountCell() {
+        this->setPadding(15);
+        this->setAlignItems(brls::AlignItems::CENTER);
+        this->setJustifyContent(brls::JustifyContent::SPACE_BETWEEN);
+        this->setBackgroundColor(brls::Application::getTheme()["color/grey_2"]);
+
+        this->name = new brls::Label();
+        this->count = new brls::Label();
+
+        this->addView(this->name);
+        this->addView(this->count);
+    }
+
+    void setCell(const ItemCount& it) {
+        this->name->setText(it.first);
+        this->count->setText(std::to_string(it.second));
+    }
+
+private:
+    brls::Label* name;
+    brls::Label* count;
+};
+
+class ItemCountDataSource : public RecyclingGridDataSource {
+public:
+    using ItemList = std::vector<ItemCount>;
+
+    explicit ItemCountDataSource(const jellyfin::ItemCount& r) {
+        this->list.push_back({"main/search/genres/movie"_i18n, r.MovieCount});
+        this->list.push_back({"main/search/genres/series"_i18n, r.SeriesCount});
+        this->list.push_back({"main/search/genres/music"_i18n, r.SongCount});
+        this->list.push_back({"main/search/genres/episode"_i18n, r.EpisodeCount});
+    }
+
+    size_t getItemCount() override { return this->list.size(); }
+
+    RecyclingGridItem* cellForRow(RecyclingView* recycler, size_t index) override {
+        ItemCountCell* cell = dynamic_cast<ItemCountCell*>(recycler->dequeueReusableCell("Cell"));
+        auto& item = this->list.at(index);
+        cell->setCell(item);
+        return cell;
+    }
+
+    void clearData() override { this->list.clear(); }
+
+private:
+    ItemList list;
 };
 
 // ----------------- Device Tab ----------------------------
@@ -91,6 +147,14 @@ public:
         this->estimatedRowSpace = 5;
         this->estimatedRowHeight = 60;
         this->doUsers();
+
+        auto doRefresh = [this](...) {
+            this->showSkeleton();
+            this->doDevices();
+            return true;
+        };
+        this->registerAction("hints/refresh"_i18n, brls::BUTTON_BACK, doRefresh);
+        this->registerAction(KeyBind::getRefresh(), doRefresh);
     }
 
     void doDevices() {
@@ -191,6 +255,15 @@ public:
         this->estimatedRowHeight = 60;
         this->onNextPage([this]() { this->doActivityLog(); });
         this->doActivityLog();
+
+        auto doRefresh = [this](...) {
+            this->start = 0;
+            this->showSkeleton();
+            this->doActivityLog();
+            return true;
+        };
+        this->registerAction("hints/refresh"_i18n, brls::BUTTON_BACK, doRefresh);
+        this->registerAction(KeyBind::getRefresh(), doRefresh);
     }
 
     void doActivityLog() {
@@ -354,7 +427,24 @@ Dashboard::Dashboard() {
     this->tabFrame->registerTabAction(this);
     this->activity->registerCell("Cell", []() { return new ActivityLogCell("xml/view/activity_warn.xml"); });
     this->sess->registerCell("Cell", []() { return new SessionCell(); });
-    this->doItemCount();
+    this->itemCount->registerCell("Cell", []() { return new ItemCountCell(); });
+
+    if (brls::Application::ORIGINAL_WINDOW_HEIGHT < 720) {
+        this->itemCount->setVisibility(brls::Visibility::GONE);
+    } else {
+        this->doItemCount();
+    }
+
+    auto doRefresh = [this](...) {
+        this->sess->showSkeleton();
+        this->activity->showSkeleton();
+        this->doSession();
+        this->doActivityWarn();
+        return true;
+    };
+    this->mainBox->registerAction("hints/refresh"_i18n, brls::BUTTON_BACK, doRefresh);
+    this->mainBox->registerAction(KeyBind::getRefresh(), doRefresh);
+
     this->doSystemInfo();
     this->doActivityWarn();
     this->doSession();
@@ -369,10 +459,7 @@ void Dashboard::doItemCount() {
     jellyfin::getJSON<jellyfin::ItemCount>(
         [ASYNC_TOKEN](const jellyfin::ItemCount& r) {
             ASYNC_RELEASE
-            this->labelMovie->setText(std::to_string(r.MovieCount));
-            this->labelSeries->setText(std::to_string(r.SeriesCount));
-            this->labelEpisode->setText(std::to_string(r.EpisodeCount));
-            this->labelSong->setText(std::to_string(r.SongCount));
+            this->itemCount->setDataSource(new ItemCountDataSource(r));
         },
         [ASYNC_TOKEN](const std::string& ex) {
             ASYNC_RELEASE
@@ -486,7 +573,7 @@ void Dashboard::doRunTask(const std::string& id) {
 }
 
 void Dashboard::doStorage() {
-    brls::View *cell = new SkeletonCell();
+    brls::View* cell = new SkeletonCell();
     cell->setGrow(1.0f);
     this->storage->addView(cell);
 

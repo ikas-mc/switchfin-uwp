@@ -110,16 +110,13 @@ MediaFolders::~MediaFolders() { brls::Logger::debug("MediaFolders: deleted"); }
 brls::View* MediaFolders::create() { return new MediaFolders(); }
 
 void MediaFolders::onCreate() {
-    this->registerAction("hints/refresh"_i18n, brls::BUTTON_BACK, [this](...) {
+    auto doRefresh = [this](...) {
         this->recycler->showSkeleton();
         this->doRequest();
         return true;
-    });
-    this->registerAction(KeyBind::getRefresh(), [this](...) {
-        this->recycler->showSkeleton();
-        this->doRequest();
-        return true;
-    });
+    };
+    this->registerAction("hints/refresh"_i18n, brls::BUTTON_BACK, doRefresh);
+    this->registerAction(KeyBind::getRefresh(), doRefresh);
 
     this->doRequest();
 }
@@ -134,12 +131,17 @@ void MediaFolders::doRequest() {
             else
                 this->recycler->setDataSource(new MediaFolderDataSource(r.Items));
         },
-        [ASYNC_TOKEN](const std::string& error) {
+        [ASYNC_TOKEN](const std::string& ex) {
             ASYNC_RELEASE
-            this->recycler->setError(error);
+            this->recycler->setError(ex);
 
-            auto dialog = new brls::Dialog(error);
-            dialog->addButton("hints/retry"_i18n, [this]() { brls::sync([this]() { this->doRequest(); }); });
+            auto dialog = new brls::Dialog(ex);
+            dialog->addButton("hints/retry"_i18n, [this]() {
+                brls::sync([this]() {
+                    this->recycler->showSkeleton();
+                    this->doRequest();
+                });
+            });
             dialog->addButton("hints/cancel"_i18n, []() {});
             dialog->open();
         },

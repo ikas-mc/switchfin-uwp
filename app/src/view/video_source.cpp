@@ -37,29 +37,31 @@ RecyclingGridItem* VideoDataSource::cellForRow(RecyclingView* recycler, size_t i
         if (it != item.ImageTags.end()) {
             Image::load(cell->picture, jellyfin::apiThumbImage, item.Id,
                 HTTP::encode_form({{"tag", it->second}, {"maxWidth", "325"}}));
-        } else if (item.ParentBackdropImageTags.empty()) {
-            Image::load(cell->picture, jellyfin::apiPrimaryImage, item.SeriesId,
-                HTTP::encode_form({{"tag", item.SeriesPrimaryImageTag}, {"maxWidth", "325"}}));
-        } else {
+        } else if (item.ParentThumbImageTag.size() > 0) {
+            Image::load(cell->picture, jellyfin::apiThumbImage, item.ParentThumbItemId,
+                HTTP::encode_form({{"tag", item.ParentThumbImageTag}, {"maxWidth", "325"}}));
+        } else if (item.ParentBackdropImageTags.size() > 0) {
             Image::load(cell->picture, jellyfin::apiBackdropImage, item.ParentBackdropItemId,
                 HTTP::encode_form({{"tag", item.ParentBackdropImageTags.at(0)}, {"maxWidth", "325"}}));
+        } else {
+            Image::load(cell->picture, jellyfin::apiPrimaryImage, item.SeriesId,
+                HTTP::encode_form({{"tag", item.SeriesPrimaryImageTag}, {"maxWidth", "325"}}));
         }
     } else {
         cell->labelTitle->setText(item.Name);
 
         if (item.Type == jellyfin::mediaTypeGenre || item.Type == jellyfin::mediaTypeBook) {
             cell->labelExt->setVisibility(brls::Visibility::GONE);
-        } else {
-            cell->labelExt->setText(item.ProductionYear > 0 ? std::to_string(item.ProductionYear) : "");
+        } else if (item.Type == jellyfin::mediaTypeVideo) {
+            cell->labelExt->setText(misc::sec2Time(item.RunTimeTicks / jellyfin::PLAYTICKS));
+        } else if (item.ProductionYear > 0) {
+            cell->labelExt->setText(std::to_string(item.ProductionYear));
         }
 
-        auto it = item.ImageTags.find(jellyfin::imageTypeThumb);
+        auto it = item.ImageTags.find(jellyfin::imageTypePrimary);
         if (it != item.ImageTags.end()) {
-            Image::load(cell->picture, jellyfin::apiThumbImage, item.Id,
-                HTTP::encode_form({{"tag", it->second}, {"maxWidth", "325"}}));
-        } else {
             Image::load(cell->picture, jellyfin::apiPrimaryImage, item.Id,
-                HTTP::encode_form({{"tag", item.ImageTags[jellyfin::imageTypePrimary]}, {"maxWidth", "240"}}));
+                HTTP::encode_form({{"tag", it->second}, {"maxWidth", "325"}}));
         }
     }
 

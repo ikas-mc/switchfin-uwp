@@ -3,6 +3,7 @@ name: vita-packages
 on:
   push:
     tags: [ vita-packages ]
+    branches: [ gxm, mpv ]
 
 permissions:
   contents: write

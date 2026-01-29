@@ -54,13 +54,13 @@ include(${BOREALIS_LIBRARY}/cmake/toolchain.cmake)
 project(Switchfin)
 set(VERSION_MAJOR "0")
 set(VERSION_MINOR "8")
-set(VERSION_ALTER "0")
+set(VERSION_ALTER "2")
 set(PROJECT_TITLEID "010ff000ffff0003")
 set(PROJECT_AUTHOR "dragonflylee")
 set(PACKAGE_NAME "org.player.switchfin")
 set(VITA_TITLEID "SWITCHFIN")
 set(PSN_TITLE_ID "SFIN00000")
-set(VITA_VERSION "00.80")
+set(VITA_VERSION "00.82")
 set(PROJECT_ICON ${CMAKE_CURRENT_SOURCE_DIR}/resources/icon/icon.jpg)
 set(PROJECT_RESOURCES ${CMAKE_CURRENT_SOURCE_DIR}/resources)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
@@ -228,7 +228,7 @@ if (PLATFORM_DESKTOP)
             MACOSX_BUNDLE_LONG_VERSION_STRING "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_ALTER}"
             MACOSX_BUNDLE_SHORT_VERSION_STRING "${VERSION_MAJOR}.${VERSION_MINOR}"
             MACOSX_BUNDLE_ICON_FILE "app.icns"
-            MACOSX_BUNDLE_COPYRIGHT "Copyright 2025 ${PROJECT_AUTHOR}"
+            MACOSX_BUNDLE_COPYRIGHT "Copyright 2026 ${PROJECT_AUTHOR}"
             RESOURCE "${CMAKE_SOURCE_DIR}/app/platform/osx/app.icns"
         )
 
@@ -268,7 +268,7 @@ elseif (PLATFORM_SWITCH)
     add_custom_target(${PROJECT_NAME}.nro DEPENDS ${PROJECT_NAME}
         COMMAND ${NX_NACPTOOL_EXE} --create "${PROJECT_NAME}" "${PROJECT_AUTHOR}" "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_ALTER}" ${PROJECT_NAME}.nacp
         COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_RESOURCES} ${CMAKE_BINARY_DIR}/resources
-        COMMAND ${CMAKE_COMMAND} -E remove ${CMAKE_BINARY_DIR}/resources/font/keymap*.ttf ${CMAKE_BINARY_DIR}/resources/font/switch_font.ttf
+        COMMAND ${CMAKE_COMMAND} -E remove ${CMAKE_BINARY_DIR}/resources/font/keymap*.ttf ${CMAKE_BINARY_DIR}/resources/font/*_fallback.ttf ${CMAKE_BINARY_DIR}/resources/font/switch_font.ttf
         COMMAND ${NX_ELF2NRO_EXE} ${PROJECT_NAME}.elf ${PROJECT_NAME}.nro --icon=${PROJECT_ICON} --nacp=${PROJECT_NAME}.nacp --romfsdir=${CMAKE_BINARY_DIR}/resources
     )
 elseif (PLATFORM_PSV)

@@ -9,8 +9,8 @@
     <RecyclingGrid
         grow="1"
         wireframe="false"
-        spanCount="6"
-        itemHeight="300"
+        spanCount="@style/app/grid/6"
+        itemHeight="@style/app/video/height"
         id="media/series" />
 
     <ButtonClose

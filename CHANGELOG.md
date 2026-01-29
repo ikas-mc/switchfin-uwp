@@ -1,5 +1,39 @@
 # Changelog
 
+## [next]
+
+### Fixed
+
+* add home tab retry dialog when request failed
+
+### Add
+
+* bonus video view for series tab 
+
+## [0.8.2]
+
+### Fixed
+
+* PS4: video freeze after fast fowarding
+* thumb image for episodes on home page
+* add refresh support for dashboard
+
+### Add
+
+* option of ui scale
+* i18n: add spanish localization @Nyaran
+
+## [0.8.1]
+
+### Fixed
+
+* stability improvement
+* adjust dashboard view
+
+### Add
+
+* program tab for livetv
+
 ## [0.8.0]
 
 ### Fixed

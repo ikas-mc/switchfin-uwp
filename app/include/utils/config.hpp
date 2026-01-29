@@ -2,6 +2,7 @@
 
 #include <borealis/core/singleton.hpp>
 #include <borealis/core/logger.hpp>
+#include <borealis/core/theme.hpp>
 #include <api/jellyfin/system.hpp>
 #include <atomic>
 
@@ -32,10 +33,9 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(AppUser, id, name, access_token, server_id);
 struct AppServer {
     std::string name;
     std::string id;
-    std::string version;
     std::vector<std::string> urls;
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(AppServer, id, name, version, urls);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(AppServer, id, name, urls);
 
 struct AppRemote {
     std::string name;
@@ -68,6 +68,7 @@ public:
         APP_THEME,
         APP_LANG,
         APP_UPDATE,
+        APP_UI_SCALE,
         AUDIO_CHANNELS,
         KEYMAP,
         WINDOW_STATE,
@@ -126,6 +127,7 @@ public:
     AppConfig() = default;
 
     bool init();
+    void initThemes();
     void save();
     bool checkLogin();
     /// @brief 检查是否安装Danmuku插件
@@ -196,4 +198,6 @@ private:
     std::vector<AppServer> servers;
     std::vector<AppRemote> remotes;
     nlohmann::json setting = {};
+
+    void addColor(const brls::ThemeVariant tv, const std::string& name, NVGcolor defaultColor);
 };

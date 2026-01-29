@@ -4,7 +4,9 @@
 #elif defined(__PSV__)
 #include <psp2/kernel/cpu.h>
 #include <psp2/kernel/threadmgr/thread.h>
+#include <psp2/appmgr.h>
 #include <psp2/vshbridge.h>
+#include <borealis/platforms/desktop/desktop_platform.hpp>
 
 extern "C" {
 unsigned int _newlib_heap_size_user = 220 * 1024 * 1024;
@@ -68,10 +70,11 @@ namespace fs = std::experimental::filesystem;
 
 std::unordered_map<AppConfig::Item, AppConfig::Option> AppConfig::settingMap = {
     {APP_THEME, {"app_theme", {"auto", "light", "dark"}}},
-    {APP_LANG, {"app_lang",
-                   {brls::LOCALE_AUTO, brls::LOCALE_EN_US, brls::LOCALE_ZH_HANS, brls::LOCALE_ZH_HANT, brls::LOCALE_JA,
-                       brls::LOCALE_Ko, brls::LOCALE_RU, brls::LOCALE_DE, brls::LOCALE_PT_BR, "cs", "uk-UA", "vi_VN"}}},
+    {APP_LANG, {"app_lang", {brls::LOCALE_AUTO, brls::LOCALE_EN_US, brls::LOCALE_ZH_HANS, brls::LOCALE_ZH_HANT,
+                                brls::LOCALE_JA, brls::LOCALE_Ko, brls::LOCALE_RU, brls::LOCALE_DE, brls::LOCALE_FR,
+                                brls::LOCALE_ES, brls::LOCALE_PT_BR, "cs", "uk", "vi"}}},
     {APP_UPDATE, {"app_update"}},
+    {APP_UI_SCALE, {"app_ui_scale", {"544p", "720p", "900p", "1080p"}}},
     {AUDIO_CHANNELS, {"audio-channels", {"auto-safe", "stereo", "mono"}}},
     {KEYMAP, {"keymap", {"xbox", "ps", "keyboard"}}},
     {WINDOW_STATE, {"window_state"}},
@@ -231,7 +234,9 @@ static std::string generateDeviceId() {
             std::string name;
             std::getline(f, name);
             while (!std::isprint(name.back())) name.pop_back();
-            if (name.size() > 0) return name;
+            if (name.size() > 0) {
+                return misc::hexEncode((uint8_t*)name.data(), name.size());
+            }
         }
     }
 #endif
@@ -266,6 +271,7 @@ bool AppConfig::init() {
 #endif
 
 #if (defined(__APPLE__) || defined(__linux__) || defined(_WIN32)) && !defined(ANDROID) && !defined(TRIMUI)
+    brls::DesktopPlatform::GAMEPAD_DB = configDir() + "/gamecontrollerdb.txt";
     if (this->getItem(AppConfig::SINGLE, false) && misc::sendIPC(this->ipcSocket(), "{}")) {
         brls::Logger::warning("AppConfig single instance");
         return false;
@@ -313,6 +319,21 @@ bool AppConfig::init() {
     // 在加载第一帧之后隐藏启动画面
     brls::sync([]() { sceSystemServiceHideSplashScreen(); });
 #endif
+
+    std::string uiScale = this->getItem(APP_UI_SCALE, std::string(""));
+    if (uiScale == "544p") {
+        brls::Application::ORIGINAL_WINDOW_WIDTH = 960;
+        brls::Application::ORIGINAL_WINDOW_HEIGHT = 544;
+    } else if (uiScale == "720p") {
+        brls::Application::ORIGINAL_WINDOW_WIDTH = 1280;
+        brls::Application::ORIGINAL_WINDOW_HEIGHT = 720;
+    } else if (uiScale == "900p") {
+        brls::Application::ORIGINAL_WINDOW_WIDTH = 1600;
+        brls::Application::ORIGINAL_WINDOW_HEIGHT = 900;
+    } else if (uiScale == "1080p") {
+        brls::Application::ORIGINAL_WINDOW_WIDTH = 1920;
+        brls::Application::ORIGINAL_WINDOW_HEIGHT = 1080;
+    }
 
     AppConfig::SYNC = this->getItem(SYNC_SETTING, true);
 
@@ -526,7 +547,6 @@ bool AppConfig::checkLogin() {
                 jellyfin::PublicSystemInfo info = nlohmann::json::parse(resp);
                 s.id = info.Id;
                 s.name = info.ServerName;
-                s.version = info.Version;
             } catch (const std::exception& ex) {
                 brls::Logger::warning("AppConfig {} checkServer: {}", s.urls.front(), ex.what());
                 return false;
@@ -618,12 +638,17 @@ std::string AppConfig::ipcSocket() {
 }
 
 void AppConfig::checkRestart(char* argv[]) {
-#if defined(__PS4__) || defined(__PSV__) || defined(ANDROID)
-#elif _WINRT_
-#elif defined(__APPLE__) || defined(__linux__) || defined(_WIN32)
+
+#if !defined(__PS4__) && !defined(__SWITCH__) && !defined(ANDROID)    
     if (brls::DesktopPlatform::RESTART_APP) {
         brls::Logger::info("Restart app {}", argv[0]);
+
+#if defined(__PSV__)
+        sceAppMgrLoadExec(argv[0], argv, nullptr);
+#elif _WINRT_
+#else
         execv(argv[0], argv);
+#endif
     }
 #endif
 }
@@ -664,7 +689,6 @@ bool AppConfig::addServer(const AppServer& s) {
     for (auto& o : this->servers) {
         if (s.id == o.id) {
             if (!s.name.empty()) o.name = s.name;
-            if (!s.version.empty()) o.version = s.version;
             // remove old url
             for (auto it = o.urls.begin(); it != o.urls.end(); ++it) {
                 if (it->compare(this->server_url) == 0) {
@@ -743,4 +767,93 @@ const std::vector<AppUser> AppConfig::getUsers(const std::string& id) const {
         }
     }
     return users;
+}
+
+void AppConfig::addColor(const brls::ThemeVariant tv, const std::string& name, NVGcolor defaultColor) {
+    auto& theme = (tv == brls::ThemeVariant::LIGHT) ? brls::Theme::getLightTheme() : brls::Theme::getDarkTheme();
+
+    if (!setting.contains(name)) {
+        theme.addColor(name, defaultColor);
+    } else {
+        unsigned int r = 0, g = 0, b = 0;
+        std::string s = setting.at(name).get<std::string>();
+
+        std::stringstream sr{s.substr(1, 2)};
+        sr >> std::hex >> r;
+        std::stringstream sg{s.substr(3, 2)};
+        sg >> std::hex >> g;
+        std::stringstream sb{s.substr(5, 2)};
+        sb >> std::hex >> b;
+        theme.addColor(name, nvgRGB(r, g, b));
+    }
+}
+
+void AppConfig::initThemes() {
+    this->addColor(brls::ThemeVariant::LIGHT, "color/app", nvgRGB(2, 176, 183));
+    this->addColor(brls::ThemeVariant::DARK, "color/app", nvgRGB(51, 186, 227));
+    // 用于骨架屏背景色
+    this->addColor(brls::ThemeVariant::LIGHT, "color/grey_1", nvgRGB(245, 246, 247));
+    this->addColor(brls::ThemeVariant::DARK, "color/grey_1", nvgRGB(51, 52, 53));
+    this->addColor(brls::ThemeVariant::LIGHT, "color/grey_2", nvgRGB(245, 245, 245));
+    this->addColor(brls::ThemeVariant::DARK, "color/grey_2", nvgRGB(51, 53, 55));
+    this->addColor(brls::ThemeVariant::LIGHT, "color/grey_3", nvgRGBA(200, 200, 200, 16));
+    this->addColor(brls::ThemeVariant::DARK, "color/grey_3", nvgRGBA(160, 160, 160, 160));
+    this->addColor(brls::ThemeVariant::LIGHT, "color/danger", nvgRGB(198, 28, 28));
+    this->addColor(brls::ThemeVariant::DARK, "color/danger", nvgRGBA(198, 28, 28, 180));
+    this->addColor(brls::ThemeVariant::LIGHT, "color/white", nvgRGB(255, 255, 255));
+    this->addColor(brls::ThemeVariant::DARK, "color/white", nvgRGBA(255, 255, 255, 180));
+    // 分割线颜色
+    this->addColor(brls::ThemeVariant::LIGHT, "color/line", nvgRGB(208, 208, 208));
+    this->addColor(brls::ThemeVariant::DARK, "color/line", nvgRGB(100, 100, 100));
+    // 深浅配色通用的灰色字体颜色
+    this->addColor(brls::ThemeVariant::LIGHT, "font/grey", nvgRGB(148, 153, 160));
+    this->addColor(brls::ThemeVariant::DARK, "font/grey", nvgRGB(148, 153, 160));
+
+    if (brls::Application::ORIGINAL_WINDOW_HEIGHT == 544) {
+        brls::getStyle().addMetric("app/album/height", 215);
+        brls::getStyle().addMetric("app/books/height", 270);
+        brls::getStyle().addMetric("app/video/height", 290);
+        brls::getStyle().addMetric("app/grid/6", 5);
+        brls::getStyle().addMetric("app/grid/5", 4);
+        brls::getStyle().addMetric("app/grid/4", 3);
+        brls::getStyle().addMetric("app/grid/3", 2);
+        brls::getStyle().addMetric("app/grid/2", 1);
+        brls::getStyle().addMetric("brls/tab_frame/content_padding_sides", 30);
+        brls::getStyle().addMetric("main/content_padding_sides", 15);
+        brls::getStyle().addMetric("main/content_padding_top_bottom", 20);
+    } else {
+        switch (brls::Application::ORIGINAL_WINDOW_HEIGHT) {
+        case 1080:
+            brls::getStyle().addMetric("app/album/height", 250);
+            brls::getStyle().addMetric("app/books/height", 320);
+            brls::getStyle().addMetric("app/video/height", 340);
+            brls::getStyle().addMetric("app/grid/6", 8);
+            brls::getStyle().addMetric("app/grid/5", 7);
+            brls::getStyle().addMetric("app/grid/4", 6);
+            brls::getStyle().addMetric("app/grid/3", 5);
+            brls::getStyle().addMetric("app/grid/2", 4);
+            break;
+        case 900:
+            brls::getStyle().addMetric("app/album/height", 240);
+            brls::getStyle().addMetric("app/books/height", 305);
+            brls::getStyle().addMetric("app/video/height", 325);
+            brls::getStyle().addMetric("app/grid/6", 7);
+            brls::getStyle().addMetric("app/grid/5", 6);
+            brls::getStyle().addMetric("app/grid/4", 5);
+            brls::getStyle().addMetric("app/grid/3", 4);
+            brls::getStyle().addMetric("app/grid/2", 3);
+            break;
+        default:
+            brls::getStyle().addMetric("app/album/height", 225);
+            brls::getStyle().addMetric("app/books/height", 280);
+            brls::getStyle().addMetric("app/video/height", 300);
+            brls::getStyle().addMetric("app/grid/6", 6);
+            brls::getStyle().addMetric("app/grid/5", 5);
+            brls::getStyle().addMetric("app/grid/4", 4);
+            brls::getStyle().addMetric("app/grid/3", 3);
+            brls::getStyle().addMetric("app/grid/2", 2);
+        }
+        brls::getStyle().addMetric("main/content_padding_sides", 25);
+        brls::getStyle().addMetric("main/content_padding_top_bottom", 30);
+    }
 }
