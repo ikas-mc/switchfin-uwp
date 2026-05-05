@@ -61,7 +61,7 @@ int Ums::init() {
     return 0;
 }
 #elif defined(_WINRT_)
-int Ums::init () { 
+int Ums::init () {
     concurrency::create_task ([&] {
         int id = -1;
         std::string appDataPath = winrt::to_string (winrt::Windows::Storage::AppDataPaths::GetDefault ().LocalAppData ());
@@ -90,9 +90,15 @@ int Ums::init () {
         }
         this->event.fire (this->devices);
         });
-   
+
     return 0;
 }
+#elif defined(__PS4__)
+int Ums::init() {
+    this->devices.push_back(Device{.id = -1, .name = "HardDisk", .mount = "/data"});
+    return 0;
+}
+
 #elif defined(_WIN32)
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

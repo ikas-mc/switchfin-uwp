@@ -13,6 +13,8 @@
 #include "view/people_source.hpp"
 #include "view/video_source.hpp"
 #include "view/presenter.hpp"
+#include "view/context_menu.hpp"
+#include "utils/keybind.hpp"
 #include <fmt/ranges.h>
 
 using namespace brls::literals;  // for _i18n
@@ -20,8 +22,6 @@ using namespace brls::literals;  // for _i18n
 class EpisodeCardCell : public BaseCardCell {
 public:
     EpisodeCardCell() { this->inflateFromXMLRes("xml/view/episode_card.xml"); }
-
-    static RecyclingGridItem* create() { return new EpisodeCardCell(); }
 
     BRLS_BIND(brls::Label, labelName, "episode/card/name");
     BRLS_BIND(brls::Label, labelOverview, "episode/card/overview");
@@ -90,6 +90,12 @@ public:
         brls::sync([view]() { brls::Application::giveFocus(view); });
     }
 
+    void onContextMenu(brls::Box* recycler, size_t index) {
+        auto& item = this->list.at(index);
+        brls::Box* menu = new ContextMenu(item);
+        brls::Application::pushActivity(new brls::Activity(menu));
+    }
+
     void clearData() override { this->list.clear(); }
 
     void appendData(const MediaList& data) { this->list.insert(this->list.end(), data.begin(), data.end()); }
@@ -103,7 +109,21 @@ public:
     MediaSeason(const jellyfin::Season& item) : seriesId(item.SeriesId), seasonId(item.Id) {
         this->inflateFromXMLRes("xml/tabs/seasons.xml");
 
-        this->recycler->registerCell("Cell", EpisodeCardCell::create);
+        this->recycler->registerCell("Cell", []() {
+            auto cell = new EpisodeCardCell();
+            auto actionListener = [cell](brls::View*) -> bool {
+                brls::Box* view = cell->getParent()->getParent();
+                RecyclingView* recycler = dynamic_cast<RecyclingView*>(view);
+                if (!recycler) return false;
+                EpisodeDataSource* dataSrc = dynamic_cast<EpisodeDataSource*>(recycler->getDataSource());
+                if (!dataSrc) return false;
+                dataSrc->onContextMenu(view, cell->getIndex());
+                return true;
+            };
+            cell->registerAction("hints/submit"_i18n, brls::BUTTON_X, actionListener, true);
+            cell->registerAction(KeyBind::getSetting(), actionListener);
+            return cell;
+        });
     }
 
     void onCreate() override {

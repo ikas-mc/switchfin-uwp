@@ -64,7 +64,6 @@ public:
     enum Item {
         FULLSCREEN,
         OVERCLOCK,
-        UMS,
         APP_THEME,
         APP_LANG,
         APP_UPDATE,
@@ -107,6 +106,8 @@ public:
         REQUEST_TIMEOUT,
         HTTP_PROXY_STATUS,
         HTTP_PROXY,
+
+        DOWNLOAD_QUALITY,
 
         KEY_REFRESH,        // 刷新快捷键
         KEY_LAST,           // 上一个Tab快捷键

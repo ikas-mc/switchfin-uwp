@@ -11,7 +11,8 @@
 
 using namespace brls::literals;
 
-PlayerView::PlayerView(const jellyfin::Item& item, const uint64_t seekTicks) : itemId(item.Id), itemType(item.Type) {
+PlayerView::PlayerView(const jellyfin::Item& item, const uint64_t seekTicks, const std::string& sourceId)
+    : itemId(item.Id) {
     float width = brls::Application::contentWidth;
     float height = brls::Application::contentHeight;
     view = new VideoView();
@@ -90,6 +91,10 @@ PlayerView::PlayerView(const jellyfin::Item& item, const uint64_t seekTicks) : i
         }
     });
 
+    if (item.Type != jellyfin::mediaTypeTvChannel) {
+        this->sourceId = sourceId.empty() ? item.Id : sourceId;
+    }
+
     this->setChapters(item.Chapters, item.RunTimeTicks);
     this->playMedia(seekTicks > 0 ? seekTicks : item.UserData.PlaybackPositionTicks);
 
@@ -167,6 +172,7 @@ bool PlayerView::playIndex(int index) {
 
     auto item = this->episodes.at(index);
     this->itemId = item.Id;
+    this->sourceId = item.Id;
     this->setChapters(item.Chapters, item.RunTimeTicks);
     this->playMedia(0);
     view->setTitie(fmt::format("S{}E{} - {}", item.ParentIndexNumber, item.IndexNumber, item.Name));
@@ -299,7 +305,7 @@ void PlayerView::playMedia(const uint64_t seekTicks) {
     jellyfin::postJSON(
         {
             {"UserId", AppConfig::instance().getUserId()},
-            {"MediaSourceId", this->itemType == jellyfin::mediaTypeTvChannel ? "" : this->itemId},
+            {"MediaSourceId", this->sourceId},
             {"AudioStreamIndex", PlayerSetting::selectedAudio},
             {"SubtitleStreamIndex", PlayerSetting::selectedSubtitle},
 #if defined(__PSV__)

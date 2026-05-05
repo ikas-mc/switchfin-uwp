@@ -41,20 +41,6 @@ constexpr uint32_t MINIMUM_WINDOW_WIDTH = 640;
 constexpr uint32_t MINIMUM_WINDOW_HEIGHT = 360;
 #endif
 
-#include <fstream>
-#ifdef USE_BOOST_FILESYSTEM
-#include <boost/filesystem.hpp>
-namespace fs = boost::filesystem;
-#elif __has_include(<filesystem>)
-#include <filesystem>
-namespace fs = std::filesystem;
-#elif __has_include("experimental/filesystem")
-#include <experimental/filesystem>
-namespace fs = std::experimental::filesystem;
-#elif !defined(USE_LIBROMFS)
-#error "Failed to include <filesystem> header!"
-#endif
-#include <set>
 #include <borealis.hpp>
 #include <borealis/core/cache_helper.hpp>
 #include <borealis/views/edit_text_dialog.hpp>
@@ -72,7 +58,7 @@ std::unordered_map<AppConfig::Item, AppConfig::Option> AppConfig::settingMap = {
     {APP_THEME, {"app_theme", {"auto", "light", "dark"}}},
     {APP_LANG, {"app_lang", {brls::LOCALE_AUTO, brls::LOCALE_EN_US, brls::LOCALE_ZH_HANS, brls::LOCALE_ZH_HANT,
                                 brls::LOCALE_JA, brls::LOCALE_Ko, brls::LOCALE_RU, brls::LOCALE_DE, brls::LOCALE_FR,
-                                brls::LOCALE_ES, brls::LOCALE_PT_BR, "cs", "uk", "vi"}}},
+                                brls::LOCALE_ES, brls::LOCALE_PT, "cs", "uk", "vi"}}},
     {APP_UPDATE, {"app_update"}},
     {APP_UI_SCALE, {"app_ui_scale", {"544p", "720p", "900p", "1080p"}}},
     {AUDIO_CHANNELS, {"audio-channels", {"auto-safe", "stereo", "mono"}}},
@@ -86,7 +72,6 @@ std::unordered_map<AppConfig::Item, AppConfig::Option> AppConfig::settingMap = {
     {CLIP_POINT, {"clip_point"}},
     {SYNC_SETTING, {"sync_setting"}},
     {OVERCLOCK, {"overclock"}},
-    {UMS, {"ums"}},
     {MPV_VO, {"mpv_vo", {"gpu", "gpu-next", "mediacodec_embed"}}},
     {PLAYER_BOTTOM_BAR, {"player_bottom_bar"}},
     {PLAYER_LOW_QUALITY, {"player_low_quality"}},
@@ -148,6 +133,8 @@ std::unordered_map<AppConfig::Item, AppConfig::Option> AppConfig::settingMap = {
         {"request_timeout", {"3000", "5000", "10000", "20000", "30000"}, {3000, 5000, 10000, 20000, 30000}}},
     {HTTP_PROXY_STATUS, {"http_proxy_status"}},
     {HTTP_PROXY, {"http_proxy"}},
+
+    {DOWNLOAD_QUALITY, {"download_quality", {"Original", "1080p", "720p", "480p"}, {0, 1, 2, 3}}},
 
     {KEY_REFRESH, {"key_refresh"}},
     {KEY_LAST, {"key_last"}},
@@ -481,9 +468,7 @@ bool AppConfig::init() {
         SwitchSys::setClock(true);
     };
 #endif
-    if (getItem(AppConfig::UMS, false)) {
-        Ums::instance().init();
-    };
+    Ums::instance().init();
 
     // init custom font path
     brls::FontLoader::USER_FONT_PATH = configDir() + "/font.ttf";

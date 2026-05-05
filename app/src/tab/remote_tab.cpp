@@ -1,5 +1,6 @@
 #include "tab/remote_tab.hpp"
 #include "tab/remote_view.hpp"
+#include "tab/download_tab.hpp"
 #include "utils/config.hpp"
 
 using namespace brls::literals;
@@ -15,6 +16,12 @@ RemoteTab::~RemoteTab() { brls::Logger::debug("RemoteTab: deleted"); }
 brls::View* RemoteTab::create() { return new RemoteTab(); }
 
 void RemoteTab::onCreate() {
+    auto* dlItem = new AutoSidebarItem();
+    dlItem->setTabStyle(AutoTabBarStyle::ACCENT);
+    dlItem->setFontSize(22);
+    dlItem->setLabel("main/tabs/downloads"_i18n);
+    this->tabFrame->addTab(dlItem, []() { return new DownloadView(); });
+
     auto& conf = AppConfig::instance();
     for (auto& r : conf.getRemotes()) {
         try {
@@ -34,18 +41,9 @@ void RemoteTab::onCreate() {
         }
     }
 
-    if (conf.getItem(AppConfig::UMS, false)) {
-        auto* item = new AutoSidebarItem();
-        item->setTabStyle(AutoTabBarStyle::ACCENT);
-        item->setFontSize(22);
-        item->setLabel("main/remote/local"_i18n);
-        this->tabFrame->addTab(item, []() { return new UmsView(); });
-    } else if (conf.getRemotes().empty()) {
-        auto hintImage = new brls::Image();
-        hintImage->setImageFromRes("img/empty.png");
-        hintImage->setScalingType(brls::ImageScalingType::CENTER);
-        this->tabFrame->setVisibility(brls::Visibility::GONE);
-        this->setJustifyContent(brls::JustifyContent::CENTER);
-        this->addView(hintImage);
-    }
+    auto* item = new AutoSidebarItem();
+    item->setTabStyle(AutoTabBarStyle::ACCENT);
+    item->setFontSize(22);
+    item->setLabel("main/remote/local"_i18n);
+    this->tabFrame->addTab(item, []() { return new UmsView(); });
 }

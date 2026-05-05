@@ -378,7 +378,7 @@ void SettingTab::onCreate() {
             "Deutsch",
             "Français",
             "Español",
-            "Portuguese",
+            "Português",
             "Czech",
             "Українська",
             "Tiếng việt",
@@ -434,6 +434,13 @@ void SettingTab::onCreate() {
         AppConfig::instance().setItem(AppConfig::HTTP_PROXY, value);
     });
     inputProxy->setVisibility(HTTP::PROXY_STATUS ? brls::Visibility::VISIBLE : brls::Visibility::GONE);
+
+    auto& dlQualityOpt = conf.getOptions(AppConfig::DOWNLOAD_QUALITY);
+    selectorDownloadQuality->init("main/download/quality"_i18n,
+        {"main/download/original"_i18n, "1080p", "720p", "480p"},
+        conf.getValueIndex(AppConfig::DOWNLOAD_QUALITY), [&dlQualityOpt](int selected) {
+            AppConfig::instance().setItem(AppConfig::DOWNLOAD_QUALITY, dlQualityOpt.values[selected]);
+        });
 
     btnSync->init("main/setting/others/sync"_i18n, AppConfig::SYNC, [](bool value) {
         AppConfig::SYNC = value;
