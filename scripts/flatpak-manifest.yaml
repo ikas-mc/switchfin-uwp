@@ -80,8 +80,8 @@ modules:
               - --disable-blacklist
             sources:
               - type: archive
-                url: https://github.com/vcrhonek/hwdata/archive/v0.405.tar.gz
-                sha256: 13605519e72e46aa13d5eede1901a07a6c83cd25ef866a86e7458047b5c81ce5
+                url: https://github.com/vcrhonek/hwdata/archive/v0.408.tar.gz
+                sha256: ac7c34efc5941d5cbf739a8f7f6c84b1c2edea493fd3fca10906ef64d7afd690
 
       - name: libplacebo
         buildsystem: meson
@@ -159,8 +159,8 @@ modules:
           - --enable-libass
         sources:
           - type: archive
-            url: https://ffmpeg.org/releases/ffmpeg-8.1.tar.xz
-            sha256: b072aed6871998cce9b36e7774033105ca29e33632be5b6347f3206898e0756a
+            url: https://ffmpeg.org/releases/ffmpeg-8.1.2.tar.xz
+            sha256: 464beb5e7bf0c311e68b45ae2f04e9cc2af88851abb4082231742a74d97b524c
             x-checker-data:
               type: anitya
               project-id: 5405
@@ -211,7 +211,7 @@ modules:
     sources:
       - type: git
         url: https://github.com/dragonflylee/glfw.git
-        commit: db08cc163dacbabfb37fb62d70ab7f62865008c6
+        commit: 444785324f6896da0acbef85614ecf5999831f2e
 
   - name: switchfin
     buildsystem: cmake-ninja
@@ -219,7 +219,7 @@ modules:
       - -DCMAKE_BUILD_TYPE=Release
       - -DPLATFORM_DESKTOP=ON
       - -DUSE_SYSTEM_GLFW=ON
-      - -USE_GLES2=OFF
+      - -DUSE_GLES2=OFF
       - -DUSE_EGL=ON
       - -DCMAKE_INSTALL=ON
     builddir: true

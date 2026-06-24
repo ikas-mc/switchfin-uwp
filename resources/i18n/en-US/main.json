@@ -92,6 +92,7 @@
     "ascending": "Ascending",
     "descending": "Descending",
     "name": "Name",
+    "seasons": "Seasons",
     "add_favorite": "Add to favorites",
     "mark_played": "Mark played",
     "mark_unplayed": "Mark unplayed",
@@ -117,6 +118,8 @@
     "history": "History",
     "suggest": "Suggest",
     "clear_history": "Confirm to clear search histroy?",
+    "no_history": "No recent searches",
+    "no_results": "No results",
     "genres": {
       "movie": "Movie",
       "music": "Music",
@@ -127,7 +130,18 @@
   "remote": {
     "local": "Local Storage",
     "folder": "Folder",
-    "up": "Up"
+    "up": "Up",
+    "add": "New server",
+    "type": "Type",
+    "name": "Name",
+    "host": "Host",
+    "port": "Port",
+    "username": "Username",
+    "password": "Password",
+    "path": "Start path",
+    "optional": "Optional",
+    "test_failed": "Connection failed: {}",
+    "required": "Enter at least a name and a host."
   },
   "download": {
     "quality": "Download Quality",
@@ -139,9 +153,18 @@
     "completed": "Downloaded",
     "failed": "Download Failed",
     "queued": "Queued",
+    "items": "items",
     "no_downloads": "No Downloads",
     "confirm_remove": "Remove this download?",
-    "play_offline": "Play Offline"
+    "confirm_cancel": "Cancel this download?",
+    "confirm_season": "Download {} episodes?",
+    "play_offline": "Play Offline",
+    "storage": "Storage",
+    "storage_free": "{} free of {}",
+    "section_active": "In Progress",
+    "section_done": "Downloaded",
+    "remove_all": "Remove All",
+    "confirm_remove_all": "Remove all downloads?"
   },
   "setting": {
     "quit_hint": "You are about to exit the application. The settings will take effect after the next startup",

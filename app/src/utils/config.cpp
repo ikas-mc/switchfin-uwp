@@ -58,7 +58,7 @@ std::unordered_map<AppConfig::Item, AppConfig::Option> AppConfig::settingMap = {
     {APP_THEME, {"app_theme", {"auto", "light", "dark"}}},
     {APP_LANG, {"app_lang", {brls::LOCALE_AUTO, brls::LOCALE_EN_US, brls::LOCALE_ZH_HANS, brls::LOCALE_ZH_HANT,
                                 brls::LOCALE_JA, brls::LOCALE_Ko, brls::LOCALE_RU, brls::LOCALE_DE, brls::LOCALE_FR,
-                                brls::LOCALE_ES, brls::LOCALE_PT, "cs", "uk", "vi"}}},
+                                brls::LOCALE_ES, brls::LOCALE_PT, "cs", "uk", "tr", "vi"}}},
     {APP_UPDATE, {"app_update"}},
     {APP_UI_SCALE, {"app_ui_scale", {"544p", "720p", "900p", "1080p"}}},
     {AUDIO_CHANNELS, {"audio-channels", {"auto-safe", "stereo", "mono"}}},
@@ -731,6 +731,23 @@ bool AppConfig::removeUser(const std::string& id) {
     return false;
 }
 
+void AppConfig::addRemote(const AppRemote& r) {
+    this->remotes.push_back(r);
+    this->save();
+}
+
+void AppConfig::updateRemote(size_t index, const AppRemote& r) {
+    if (index >= this->remotes.size()) return;
+    this->remotes[index] = r;
+    this->save();
+}
+
+void AppConfig::removeRemote(size_t index) {
+    if (index >= this->remotes.size()) return;
+    this->remotes.erase(this->remotes.begin() + index);
+    this->save();
+}
+
 std::string AppConfig::getAuth(const std::string& token) {
     if (this->device_name.empty()) this->device_name = AppVersion::getDeviceName();
 
@@ -776,6 +793,12 @@ void AppConfig::addColor(const brls::ThemeVariant tv, const std::string& name, N
 void AppConfig::initThemes() {
     this->addColor(brls::ThemeVariant::LIGHT, "color/app", nvgRGB(2, 176, 183));
     this->addColor(brls::ThemeVariant::DARK, "color/app", nvgRGB(51, 186, 227));
+    // metadata pills (detail pages)
+    this->addColor(brls::ThemeVariant::LIGHT, "color/pill", nvgRGBA(0, 0, 0, 18));
+    this->addColor(brls::ThemeVariant::DARK, "color/pill", nvgRGBA(255, 255, 255, 22));
+    // surfaces placed over the background (content cards, PIN code panel...)
+    this->addColor(brls::ThemeVariant::LIGHT, "color/surface", nvgRGB(255, 255, 255));
+    this->addColor(brls::ThemeVariant::DARK, "color/surface", nvgRGB(22, 24, 29));
     // 用于骨架屏背景色
     this->addColor(brls::ThemeVariant::LIGHT, "color/grey_1", nvgRGB(245, 246, 247));
     this->addColor(brls::ThemeVariant::DARK, "color/grey_1", nvgRGB(51, 52, 53));
@@ -798,6 +821,13 @@ void AppConfig::initThemes() {
         brls::getStyle().addMetric("app/album/height", 215);
         brls::getStyle().addMetric("app/books/height", 270);
         brls::getStyle().addMetric("app/video/height", 290);
+        // row = width x image ratio (poster 2:3 = 1.5, wide 16:9 = 0.5625)
+        // + 55 of label area (margin 10 + title 25 + subtitle 20), so the
+        // image fill keeps exactly the media's ratio
+        brls::getStyle().addMetric("app/card/poster/width", 150);
+        brls::getStyle().addMetric("app/card/poster/row", 280);
+        brls::getStyle().addMetric("app/card/wide/width", 280);
+        brls::getStyle().addMetric("app/card/wide/row", 213);
         brls::getStyle().addMetric("app/grid/6", 5);
         brls::getStyle().addMetric("app/grid/5", 4);
         brls::getStyle().addMetric("app/grid/4", 3);
@@ -812,6 +842,10 @@ void AppConfig::initThemes() {
             brls::getStyle().addMetric("app/album/height", 250);
             brls::getStyle().addMetric("app/books/height", 320);
             brls::getStyle().addMetric("app/video/height", 340);
+            brls::getStyle().addMetric("app/card/poster/width", 225);
+            brls::getStyle().addMetric("app/card/poster/row", 393);
+            brls::getStyle().addMetric("app/card/wide/width", 410);
+            brls::getStyle().addMetric("app/card/wide/row", 286);
             brls::getStyle().addMetric("app/grid/6", 8);
             brls::getStyle().addMetric("app/grid/5", 7);
             brls::getStyle().addMetric("app/grid/4", 6);
@@ -822,6 +856,10 @@ void AppConfig::initThemes() {
             brls::getStyle().addMetric("app/album/height", 240);
             brls::getStyle().addMetric("app/books/height", 305);
             brls::getStyle().addMetric("app/video/height", 325);
+            brls::getStyle().addMetric("app/card/poster/width", 205);
+            brls::getStyle().addMetric("app/card/poster/row", 363);
+            brls::getStyle().addMetric("app/card/wide/width", 375);
+            brls::getStyle().addMetric("app/card/wide/row", 266);
             brls::getStyle().addMetric("app/grid/6", 7);
             brls::getStyle().addMetric("app/grid/5", 6);
             brls::getStyle().addMetric("app/grid/4", 5);
@@ -832,6 +870,11 @@ void AppConfig::initThemes() {
             brls::getStyle().addMetric("app/album/height", 225);
             brls::getStyle().addMetric("app/books/height", 280);
             brls::getStyle().addMetric("app/video/height", 300);
+            // row = width x image ratio + 55 of labels (cf. PSV block)
+            brls::getStyle().addMetric("app/card/poster/width", 185);
+            brls::getStyle().addMetric("app/card/poster/row", 333);
+            brls::getStyle().addMetric("app/card/wide/width", 340);
+            brls::getStyle().addMetric("app/card/wide/row", 246);
             brls::getStyle().addMetric("app/grid/6", 6);
             brls::getStyle().addMetric("app/grid/5", 5);
             brls::getStyle().addMetric("app/grid/4", 4);

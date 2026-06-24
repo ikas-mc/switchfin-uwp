@@ -6,7 +6,7 @@
 _realname=ffmpeg
 pkgbase="mingw-w64-${_realname}"
 pkgname="${MINGW_PACKAGE_PREFIX}-${_realname}"
-pkgver=8.1
+pkgver=8.1.2
 pkgrel=3
 pkgdesc="Complete solution to record, convert and stream audio and video (mingw-w64)"
 arch=('any')
@@ -25,13 +25,12 @@ depends=(
 makedepends=(
   "${MINGW_PACKAGE_PREFIX}-cc"
   "${MINGW_PACKAGE_PREFIX}-pkgconf"
-  $([[ ${MINGW_PACKAGE_PREFIX} == *-clang-aarch64* ]] || echo "${MINGW_PACKAGE_PREFIX}-amf-headers")
-  $([[ ${MINGW_PACKAGE_PREFIX} == *-clang-aarch64* ]] || echo "${MINGW_PACKAGE_PREFIX}-ffnvcodec-headers")
-  $([[ ${MINGW_PACKAGE_PREFIX} == *-clang-aarch64* ]] || echo "${MINGW_PACKAGE_PREFIX}-nasm")
+  "${MINGW_PACKAGE_PREFIX}-ffnvcodec-headers"
+  "${MINGW_PACKAGE_PREFIX}-nasm"
 )
 options=('staticlibs' '!strip')
 source=("https://ffmpeg.org/releases/${_realname}-${pkgver}.tar.xz" "avio.patch")
-sha256sums=('b072aed6871998cce9b36e7774033105ca29e33632be5b6347f3206898e0756a' 'SKIP')
+sha256sums=('464beb5e7bf0c311e68b45ae2f04e9cc2af88851abb4082231742a74d97b524c' 'SKIP')
 
 prepare() {
   cd ${_realname}-${pkgver}
@@ -72,8 +71,8 @@ build() {
     --enable-libssh2 \
     --enable-mbedtls \
     --enable-version3 \
-    $( [[ "${MINGW_PACKAGE_PREFIX}" != *clang-aarch64* ]] \
-      && echo "--enable-nvdec --enable-ffnvcodec --enable-amf")
+    --enable-nvdec \
+    --enable-ffnvcodec
 
   make -j4
 }

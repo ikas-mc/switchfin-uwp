@@ -4,6 +4,7 @@
 
 #include <utility>
 #include "view/recycling_grid.hpp"
+#include "view/svg_image.hpp"
 
 /// RecyclingGridItem
 
@@ -133,12 +134,13 @@ RecyclingGrid::RecyclingGrid() {
     brls::Logger::debug("View RecyclingGrid: create");
 
     // Create hint views
-    this->hintImage = new brls::Image();
+    this->hintImage = new SVGImage();
     this->hintImage->detach();
-    this->hintImage->setImageFromRes("img/empty.png");
+    this->hintImage->setDimensions(56, 56);
+    this->hintImage->setImageFromSVGRes("icon/ico-list.svg");
     this->hintLabel = new brls::Label();
     this->hintLabel->detach();
-    this->hintLabel->setFontSize(14);
+    this->hintLabel->setFontSize(17);
     this->hintLabel->setHorizontalAlign(brls::HorizontalAlign::CENTER);
 
     this->setFocusable(false);
@@ -323,6 +325,11 @@ void RecyclingGrid::reloadData() {
     if (dataSource == nullptr) return;
     if (dataSource->getItemCount() <= 0) {
         contentBox->setHeight(0);
+        // the grid just emptied: every cell was queued for reuse (detached
+        // from the tree). Forget any remembered cell focus so a later
+        // getDefaultFocus() can't hand back a now-recycled cell (stale frame
+        // -> ghost highlight halo). The owner redirects the live focus.
+        contentBox->setLastFocusedView(nullptr);
         return;
     }
     size_t cellFocusIndex = this->defaultCellFocus;
@@ -402,9 +409,9 @@ void RecyclingGrid::clearData() {
     }
 }
 
-void RecyclingGrid::setEmpty(std::string msg) {
-    this->hintImage->setImageFromRes("img/empty.png");
-    this->hintLabel->setText(msg);
+void RecyclingGrid::setEmpty(std::string title, std::string icon) {
+    this->hintImage->setImageFromSVGRes(icon.empty() ? "icon/ico-list.svg" : icon);
+    this->hintLabel->setText(title);
     this->clearData();
 }
 

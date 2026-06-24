@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-enum class DownloadStatus { Queued, Downloading, Completed, Failed };
+enum class DownloadStatus { Queued, Downloading, Completed, Failed, NotFound };
 enum class DownloadQuality { Original, Q1080p, Q720p, Q480p };
 
 NLOHMANN_JSON_SERIALIZE_ENUM(DownloadStatus, {
@@ -29,6 +29,7 @@ struct DownloadItem {
     std::string itemId;
     std::string name;
     std::string type;
+    std::string seriesId;
     std::string seriesName;
     int seasonIndex = 0;
     int episodeIndex = 0;
@@ -42,7 +43,7 @@ struct DownloadItem {
     int64_t downloadedBytes = 0;
     std::string errorMessage;
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(DownloadItem, itemId, name, type, seriesName,
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(DownloadItem, itemId, name, type, seriesId, seriesName,
     seasonIndex, episodeIndex, productionYear, runTimeTicks, imagePrimaryTag, quality, status,
     filePath, totalBytes, downloadedBytes, errorMessage);
 
@@ -58,11 +59,12 @@ public:
     void removeDownload(const std::string& itemId);
     void resumeQueue();
 
-    bool isDownloaded(const std::string& itemId) const;
-    bool isDownloading(const std::string& itemId) const;
+    DownloadStatus findItem(const std::string& itemId) const;
+    std::pair<size_t, size_t> findSeries(const std::string& seriesId) const;
     std::string getLocalPath(const std::string& itemId) const;
 
     std::vector<DownloadItem> getItems() const;
+    std::string downloadDir() const;
 
     ProgressEvent* getProgressEvent() { return &progressEvent; }
     StatusEvent* getStatusEvent() { return &statusEvent; }
@@ -72,7 +74,6 @@ private:
     void loadIndex();
     void processQueue();
     void doDownload(DownloadItem& item);
-    std::string downloadDir() const;
     std::string buildDownloadUrl(const DownloadItem& item) const;
 
     mutable std::mutex mutex;

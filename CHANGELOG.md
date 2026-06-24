@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.9.1]
+
+### Fixed
+
+* follow framebuffer size changes when docking mid-playback
+* improvements media tab layout with new UI elements
+
+### Add
+
+* add Turkish localization @lexicalnerd
+* add series download support
+* support remote server manage with add/edit form
+
+## [0.9.0]
+
+### Fixed
+
+* support multi source movie
+* fix zh-Hant translations @dic1911
+* update Portuguese from crowdin
+
+### Add
+
+* add offline download support @docmeth02
+
 ## [0.8.3]
 
 ### Fixed

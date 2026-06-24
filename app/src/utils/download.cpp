@@ -1,5 +1,6 @@
 #include "utils/download.hpp"
 #include "utils/config.hpp"
+#include "utils/thread.hpp"
 #include "utils/misc.hpp"
 #include "api/jellyfin.hpp"
 #include "view/mpv_core.hpp"
@@ -71,9 +72,8 @@ void DownloadManager::addDownload(const std::string& itemId, DownloadQuality qua
             dl.runTimeTicks = item.RunTimeTicks;
             dl.quality = quality;
             dl.status = DownloadStatus::Queued;
-            for (auto& src : item.MediaSources) {
-                dl.filePath = src.Name;
-            }
+            if (item.SeriesId.is_string()) dl.seriesId = item.SeriesId.get<std::string>();
+            for (auto& src : item.MediaSources) dl.filePath = src.Name;
 
             auto primaryTag = item.ImageTags.find(jellyfin::imageTypePrimary);
             if (primaryTag != item.ImageTags.end()) dl.imagePrimaryTag = primaryTag->second;
@@ -166,22 +166,24 @@ void DownloadManager::removeDownload(const std::string& itemId) {
     }
 }
 
-bool DownloadManager::isDownloaded(const std::string& itemId) const {
+DownloadStatus DownloadManager::findItem(const std::string& itemId) const {
     std::lock_guard<std::mutex> lock(this->mutex);
     for (auto& item : this->items) {
-        if (item.itemId == itemId && item.status == DownloadStatus::Completed) return true;
+        if (item.itemId == itemId) return item.status;
     }
-    return false;
+    return DownloadStatus::NotFound;
 }
 
-bool DownloadManager::isDownloading(const std::string& itemId) const {
+std::pair<size_t, size_t> DownloadManager::findSeries(const std::string& seriesId) const {
     std::lock_guard<std::mutex> lock(this->mutex);
+    size_t count = 0, done = 0;
     for (auto& item : this->items) {
-        if (item.itemId == itemId &&
-            (item.status == DownloadStatus::Downloading || item.status == DownloadStatus::Queued))
-            return true;
+        if (item.seriesId == seriesId) {
+            if (item.status == DownloadStatus::Completed) done++;
+            ++count;
+        }
     }
-    return false;
+    return std::make_pair(count, done);
 }
 
 std::string DownloadManager::getLocalPath(const std::string& itemId) const {
@@ -275,7 +277,7 @@ void DownloadManager::doDownload(DownloadItem& item) {
 
     brls::sync([this, itemId]() { this->statusEvent.fire(itemId, DownloadStatus::Downloading); });
 
-    brls::async([this, itemId, imagePrimaryTag, quality, url, itemDir, cancel]() {
+    ThreadPool::instance().submit([this, itemId, imagePrimaryTag, quality, url, itemDir, cancel](HTTP& s) {
         auto resetQueue = [this, itemId](const std::string& error) {
             brls::sync([this, itemId, error]() {
                 {
@@ -356,6 +358,7 @@ void DownloadManager::doDownload(DownloadItem& item) {
                     HTTP::encode_form({{"tag", imagePrimaryTag}, {"maxWidth", "300"}}));
                 HTTP::download(thumbUrl, itemDir + "/thumb.png", HTTP::Timeout{});
             } catch (const std::exception& e) {
+                fs::remove(itemDir + "/thumb.png");
                 brls::Logger::warning("Failed to download thumbnail: {}", e.what());
             }
         }
@@ -363,7 +366,7 @@ void DownloadManager::doDownload(DownloadItem& item) {
         auto lastProgress = std::make_shared<std::chrono::steady_clock::time_point>();
         HTTP::Progress::Callback progressCb = [this, itemId, lastProgress](curl_off_t total, curl_off_t now) {
             auto tp = std::chrono::steady_clock::now();
-            if (tp - *lastProgress < std::chrono::milliseconds(500)) return;
+            if (tp - *lastProgress < std::chrono::seconds(1)) return;
             *lastProgress = tp;
 
             brls::sync([this, itemId, total, now]() {
