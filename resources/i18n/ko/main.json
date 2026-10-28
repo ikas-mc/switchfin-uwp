@@ -55,6 +55,15 @@
     "episode": "에피소드",
     "speed_up": "{} 배속 재생 중"
   },
+  "ebook": {
+    "zoom": "확대/축소",
+    "zoom_in": "확대",
+    "zoom_out": "축소",
+    "single_page": "단일 페이지",
+    "double_page": "두 페이지",
+    "outline": "Outline",
+    "no_outline": "No outline"
+  },
   "danmaku": {
     "header": "탄막 자막 설정",
     "performance": {
@@ -94,6 +103,7 @@
     "name": "이름",
     "seasons": "시즌",
     "add_favorite": "즐겨찾기에 추가",
+    "del_favorite": "즐겨찾기에서 제거",
     "mark_played": "재생한 것으로 표시",
     "mark_unplayed": "재생하지 않은 것으로 표시",
     "play": "재생",
@@ -144,6 +154,8 @@
     "required": "이름과 호스트를 입력하세요."
   },
   "download": {
+    "quality": "다운로드 화질",
+    "original": "원본",
     "start": "다운로드",
     "cancel": "다운로드 취소",
     "remove": "다운로드 삭제",
@@ -151,6 +163,7 @@
     "completed": "다운로드 완료",
     "failed": "다운로드 실패",
     "queued": "대기 중",
+    "items": "항목",
     "no_downloads": "다운로드 없음",
     "confirm_remove": "이 다운로드를 삭제할까요?",
     "confirm_cancel": "이 다운로드를 취소할까요?",
@@ -198,7 +211,7 @@
       "touch_gesture": "재생 진행 손가락 제스처 활성화",
       "clip_point": "챕터 위치 표시",
       "transcodec": "트랜스코딩 포맷",
-      "audio_channels": "오디오 채널",  
+      "audio_channels": "오디오 채널",
       "video_quality": "비디오 품질",
       "subsync": "자막 동기화"
     },

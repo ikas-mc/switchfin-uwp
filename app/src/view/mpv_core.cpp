@@ -3,6 +3,7 @@
 //
 
 #include "view/mpv_core.hpp"
+#include "api/http.hpp"
 #include "utils/config.hpp"
 #include "utils/misc.hpp"
 #include <fmt/ranges.h>
@@ -123,7 +124,7 @@ void MPVCore::init() {
     }
 
     auto &conf = AppConfig::instance();
-    std::string confDir = conf.configDir(); 
+    std::string confDir = conf.configDir();
 
     // misc
     mpv_set_option_string(mpv, "config", "yes");
@@ -146,6 +147,7 @@ void MPVCore::init() {
     mpv_set_option_string(mpv, "gpu-shader-cache-dir", fmt::format("{}/cache", confDir).c_str());
     mpv_set_option_string(mpv, "ytdl", "no");
     mpv_set_option_string(mpv, "referrer", conf.getUrl().c_str());
+    mpv_set_option_string(mpv, "user-agent", HTTP::USER_AGENT.c_str());
     mpv_set_option_string(mpv, "osd-level", "0");
     mpv_set_option_string(mpv, "video-timing-offset", "0");  // 60fps
     mpv_set_option_string(mpv, "reset-on-next-file", "speed,pause");
@@ -250,10 +252,12 @@ void MPVCore::init() {
         {MPV_RENDER_PARAM_INVALID, nullptr},
     };
 #elif defined(BOREALIS_USE_D3D11)
-    mpv_dxgi_init_params init_params{D3D11_CONTEXT->getDevice(), D3D11_CONTEXT->getSwapChain()};
+    mpv_d3d11_init_params init_params{.device = D3D11_CONTEXT->getDevice()};
+    const char *backend = conf.getItem(AppConfig::MPV_RENDER, false) ? "gpu-next" : "gpu";
     mpv_render_param params[] = {
-        {MPV_RENDER_PARAM_API_TYPE, const_cast<char *>(MPV_RENDER_API_TYPE_DXGI)},
-        {MPV_RENDER_PARAM_DXGI_INIT_PARAMS, &init_params},
+        {MPV_RENDER_PARAM_API_TYPE, const_cast<char *>(MPV_RENDER_API_TYPE_D3D11)},
+        {MPV_RENDER_PARAM_D3D11_INIT_PARAMS, &init_params},
+        {MPV_RENDER_PARAM_BACKEND, const_cast<char *>(backend)},
         {MPV_RENDER_PARAM_INVALID, nullptr},
     };
 #elif defined(BOREALIS_USE_DEKO3D)
@@ -514,7 +518,12 @@ void MPVCore::draw(brls::Rect area, float alpha) {
 #else
     // 只在非透明时绘制视频，可以避免退出页面时视频画面残留
     if (alpha >= 1 && !this->video_stopped) {
-#ifdef BOREALIS_USE_DEKO3D
+#ifdef BOREALIS_USE_D3D11
+        ID3D11Texture2D *tex = nullptr;
+        auto swapChain = D3D11_CONTEXT->getSwapChain();
+        swapChain->GetBuffer(0, IID_PPV_ARGS(&tex));
+        mpv_fbo.tex = tex;
+#elif defined(BOREALIS_USE_DEKO3D)
         static auto videoContext =
             dynamic_cast<brls::SwitchVideoContext *>(brls::Application::getPlatform()->getVideoContext());
         this->mpv_fbo.tex = videoContext->getFramebuffer();
@@ -524,6 +533,7 @@ void MPVCore::draw(brls::Rect area, float alpha) {
         // 绘制视频
         mpv_render_context_render(this->mpv_context, mpv_params);
 #ifdef BOREALIS_USE_D3D11
+        tex->Release();
         D3D11_CONTEXT->beginFrame();
 #elif defined(BOREALIS_USE_DEKO3D)
         videoContext->queueWaitFence(&doneFence);
@@ -553,17 +563,19 @@ void MPVCore::eventMainLoop() {
         case MPV_EVENT_NONE:
             return;
         case MPV_EVENT_LOG_MESSAGE: {
-            auto log = (mpv_event_log_message *)event->data;
+            auto log = reinterpret_cast<mpv_event_log_message *>(event->data);
+            std::string text = log->text;
+            while (!text.empty() && text.back() == '\n') text.pop_back();
             if (log->log_level <= MPV_LOG_LEVEL_ERROR) {
-                brls::Logger::error("{}: {}", log->prefix, log->text);
+                brls::Logger::error("{}: {}", log->prefix, text);
             } else if (log->log_level <= MPV_LOG_LEVEL_WARN) {
-                brls::Logger::warning("{}: {}", log->prefix, log->text);
+                brls::Logger::warning("{}: {}", log->prefix, text);
             } else if (log->log_level <= MPV_LOG_LEVEL_INFO) {
-                brls::Logger::info("{}: {}", log->prefix, log->text);
+                brls::Logger::info("{}: {}", log->prefix, text);
             } else if (log->log_level <= MPV_LOG_LEVEL_V) {
-                brls::Logger::debug("{}: {}", log->prefix, log->text);
+                brls::Logger::debug("{}: {}", log->prefix, text);
             } else {
-                brls::Logger::verbose("{}: {}", log->prefix, log->text);
+                brls::Logger::verbose("{}: {}", log->prefix, text);
             }
             break;
         }
@@ -718,7 +730,7 @@ void MPVCore::togglePlay() { this->command("cycle", "pause"); }
 
 void MPVCore::stop() { this->command("stop"); }
 
-void MPVCore::seek(int64_t value, const std::string &flags) {
+void MPVCore::seek(double value, const std::string &flags) {
     std::string pos = std::to_string(value);
     this->command("seek", pos.c_str(), flags.c_str());
 }

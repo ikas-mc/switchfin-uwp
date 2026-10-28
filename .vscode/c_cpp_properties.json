@@ -3,7 +3,6 @@
         {
             "name": "Switch",
             "includePath": [
-                "${workspaceFolder}/build_switch/library/lunasvg/include",
                 "${workspaceFolder}/app/include",
                 "${workspaceFolder}/library/**",
                 "${env:DEVKITPRO}/libnx/include",
@@ -68,14 +67,15 @@
         {
             "name": "MinGW64",
             "includePath": [
-                "${workspaceFolder}/build/library/lunasvg/include",
                 "${workspaceFolder}/app/include",
                 "${workspaceFolder}/library/**",
                 "C:/MinGW64/include",
                 "C:/MinGW64/x86_64-w64-mingw32/include/**"
             ],
             "defines": [
-                "BOREALIS_USE_OPENGL",
+                "USE_WEBP",
+                "USE_MUPDF",
+                "BOREALIS_USE_D3D11",
                 "YG_ENABLE_EVENTS",
                 "BRLS_RESOURCES=\"resources\""
             ],

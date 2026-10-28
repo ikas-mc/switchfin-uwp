@@ -13,7 +13,7 @@ public:
     static std::string getDeviceName();
     static std::string getPackageName();
     static std::string getCommit();
-    static bool needUpdate(std::string latestVersion);
+    static bool needUpdate(const std::string& latestVersion);
     static void checkUpdate(int delay = 2000, bool showUpToDateDialog = false);
 
     inline static std::shared_ptr<std::atomic_bool> updating = std::make_shared<std::atomic_bool>(true);
@@ -58,26 +58,25 @@ inline void from_json(const nlohmann::json& nlohmann_json_j, AppRemote& nlohmann
 }
 
 class AppConfig : public brls::Singleton<AppConfig> {
-    using UserIter = std::vector<AppUser>::iterator;
-
 public:
     enum Item {
         FULLSCREEN,
         OVERCLOCK,
         APP_THEME,
         APP_LANG,
-        APP_UPDATE,
         APP_UI_SCALE,
         AUDIO_CHANNELS,
         KEYMAP,
         WINDOW_STATE,
         TRANSCODEC,
         FORCE_DIRECTPLAY,
+        MAXDAY_NEXTUP,
         OSD_ON_TOGGLE,
         TOUCH_GESTURE,
         CLIP_POINT,
         SYNC_SETTING,
         MPV_VO,
+        MPV_RENDER,
         PLAYER_BOTTOM_BAR,
         PLAYER_LOW_QUALITY,
         PLAYER_INMEMORY_CACHE,
@@ -108,6 +107,7 @@ public:
         HTTP_PROXY,
 
         DOWNLOAD_QUALITY,
+        DOWNLOAD_PATH,
 
         KEY_REFRESH,        // 刷新快捷键
         KEY_LAST,           // 上一个Tab快捷键
@@ -134,18 +134,20 @@ public:
     /// @brief 检查是否安装Danmuku插件
     bool checkDanmuku();
 
-    std::string configDir();
-    std::string ipcSocket();
+    std::string configDir() const;
+    std::string downloadDir() const;
+    std::string ipcSocket() const;
     void checkRestart(char* argv[]);
 
     template <typename T>
-    T getItem(const Item item, T defaultValue) {
-        auto& o = settingMap[item];
+    T getItem(const Item item, T defaultValue) const {
+        auto it = settingMap.find(item);
+        if (it == settingMap.end()) return defaultValue;
         try {
-            if (!setting.contains(o.key)) return defaultValue;
-            return this->setting.at(o.key).get<T>();
+            if (!setting.contains(it->second.key)) return defaultValue;
+            return this->setting.at(it->second.key).get<T>();
         } catch (const std::exception& e) {
-            brls::Logger::error("Damaged config found: {}/{}", o.key, e.what());
+            brls::Logger::error("Damaged config found: {}/{}", it->second.key, e.what());
             return defaultValue;
         }
     }
@@ -174,11 +176,13 @@ public:
     const std::string& getDeviceId() { return this->device; }
     std::string getAuth(const std::string& token = "");
     const std::string& getUserId() const { return this->user_id; }
-    const std::string& getUserName() const { return this->user->name; }
-    const std::string& getToken() const { return this->user->access_token; }
+    /// @brief 当前登录用户（按 user_id 匹配）；未登录时返回安全的空对象
+    const AppUser& currentUser() const;
+    const std::string& getUserName() const { return this->currentUser().name; }
+    const std::string& getToken() const { return this->currentUser().access_token; }
     const std::string& getUrl() const { return this->server_url; }
-    bool isAdmin() const { return this->user->is_admin; }
-    const jellyfin::UserConfig& userConfig() const { return this->user->config; }
+    bool isAdmin() const { return this->currentUser().is_admin; }
+    const jellyfin::UserConfig& userConfig() const { return this->currentUser().config; }
     void addRemote(const AppRemote& r);
     void updateRemote(size_t index, const AppRemote& r);
     void removeRemote(size_t index);
@@ -193,7 +197,6 @@ public:
 private:
     static std::unordered_map<Item, Option> settingMap;
 
-    UserIter user;
     std::string user_id;
     std::string server_url;
     std::string device;

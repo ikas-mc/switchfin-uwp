@@ -6,16 +6,12 @@
 #include "api/jellyfin.hpp"
 #include "tab/media_series.hpp"
 #include "view/h_recycling.hpp"
-#include "view/auto_tab_frame.hpp"
 #include "view/icon_button.hpp"
 #include "view/svg_image.hpp"
 #include "view/text_box.hpp"
 #include "view/video_card.hpp"
 #include "view/people_source.hpp"
 #include "view/video_source.hpp"
-#include "view/presenter.hpp"
-#include "view/context_menu.hpp"
-#include "utils/keybind.hpp"
 #include "utils/dialog.hpp"
 #include <fmt/ranges.h>
 
@@ -59,6 +55,15 @@ MediaSeries::MediaSeries(const jellyfin::Episode& item) {
     this->updateDownloadButton();
     this->statusSub = dm.getStatusEvent()->subscribe(
         [this](const std::string& id, DownloadStatus status) { this->updateDownloadButton(); });
+
+    this->updateFavoriteButton(item.UserData.IsFavorite);
+    this->btnFavorite->registerClickAction([this](...) {
+        if (this->isFavorite)
+            this->unFavorite();
+        else
+            this->doFavorite();
+        return true;
+    });
 
     this->doSeason();
     this->doSeries();
@@ -112,6 +117,13 @@ void MediaSeries::doSeries() {
                 this->people->setDataSource(new PeopleDataSource(r.People));
             } else {
                 this->people->setVisibility(brls::Visibility::GONE);
+            }
+            this->updateFavoriteButton(r.UserData.IsFavorite);
+
+            if (r.UserData.Played) {
+                this->btnPlay->setIcon("icon/ico-checkmark.svg");
+                this->btnPlay->setText("main/media/played"_i18n);
+                this->btnPlay->setButtonStyle("disabled");
             }
 
             auto poster = r.ImageTags.find(jellyfin::imageTypePrimary);
@@ -289,5 +301,51 @@ void MediaSeries::updateDownloadButton() {
         this->btnDownload->setText("main/download/completed"_i18n);
     } else {
         this->btnDownload->setText(fmt::format("{} {}/{}", "main/download/downloading"_i18n, it.second, it.first));
+    }
+}
+
+bool MediaSeries::doFavorite() {
+    ASYNC_RETAIN
+    jellyfin::postJSON(
+        {
+            {"itemId", this->seriesId},
+        },
+        [ASYNC_TOKEN](const jellyfin::UserDataResult& r) {
+            ASYNC_RELEASE
+            this->updateFavoriteButton(r.IsFavorite);
+        },
+        [ASYNC_TOKEN](const std::string& ex) {
+            ASYNC_RELEASE
+            brls::Application::popActivity(brls::TransitionAnimation::NONE, [ex]() { brls::Application::notify(ex); });
+        },
+        jellyfin::apiFavoriteItems, AppConfig::instance().getUserId(), this->seriesId);
+
+    return true;
+}
+
+bool MediaSeries::unFavorite() {
+    ASYNC_RETAIN
+    jellyfin::deleteJSON<jellyfin::UserDataResult>(
+        [ASYNC_TOKEN](const jellyfin::UserDataResult& r) {
+            ASYNC_RELEASE
+            this->updateFavoriteButton(r.IsFavorite);
+        },
+        [ASYNC_TOKEN](const std::string& ex) {
+            ASYNC_RELEASE
+            brls::Application::popActivity(brls::TransitionAnimation::NONE, [ex]() { brls::Application::notify(ex); });
+        },
+        jellyfin::apiFavoriteItems, AppConfig::instance().getUserId(), this->seriesId);
+
+    return true;
+}
+
+void MediaSeries::updateFavoriteButton(bool favorite) {
+    this->isFavorite = favorite;
+    if (favorite) {
+        this->btnFavorite->setIcon("icon/ico-heart.svg");
+        this->btnFavorite->setText("main/media/del_favorite"_i18n);
+    } else {
+        this->btnFavorite->setIcon("icon/ico-heart-gray.svg");
+        this->btnFavorite->setText("main/media/add_favorite"_i18n);
     }
 }

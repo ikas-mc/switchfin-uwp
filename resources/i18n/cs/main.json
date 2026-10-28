@@ -55,6 +55,44 @@
     "episode": "Epizoda",
     "speed_up": "Aktuální rychlost {}"
   },
+  "ebook": {
+    "zoom": "Přiblížení",
+    "zoom_in": "Přiblížit",
+    "zoom_out": "Oddálit",
+    "single_page": "Jedna stránka",
+    "double_page": "Dvě stránky",
+    "outline": "Outline",
+    "no_outline": "No outline"
+  },
+  "danmaku": {
+    "header": "Nastavení Danmaku",
+    "performance": {
+      "header": "Výkon",
+      "render": "Kvalita vykreslování"
+    },
+    "style": {
+      "header": "Styl Danmaku",
+      "font": "Styl obrysu",
+      "font_stroke": "Obrys",
+      "font_incline": "Sklon",
+      "font_shadow": "Stín",
+      "font_pure": "Čistý",
+      "area": "Oblast zobrazení",
+      "area_1_4": "1/4 obrazovky",
+      "area_2_4": "1/2 obrazovky",
+      "area_3_4": "3/4 obrazovky",
+      "area_4_4": "Celá obrazovka",
+      "alpha": "Průhlednost",
+      "fontsize": "Velikost písma",
+      "line_height": "Výška řádku",
+      "speed": "Rychlost",
+      "speed_slow_plus": "Extrémně pomalá",
+      "speed_slow": "Pomalá",
+      "speed_fast_plus": "Extrémně rychlá",
+      "speed_fast": "Rychlá",
+      "speed_moderate": "Střední"
+    }
+  },
   "media": {
     "sort": "Řadit",
     "sort_by": "Řadit podle",
@@ -65,6 +103,7 @@
     "name": "Jména",
     "seasons": "řady",
     "add_favorite": "Přidat do oblíbených",
+    "del_favorite": "Odstranit z oblíbených",
     "mark_played": "Označit přehrané",
     "mark_unplayed": "Označit nepřehrané",
     "play": "Přehrát",
@@ -115,6 +154,8 @@
     "required": "Zadejte alespoň název a hostitele."
   },
   "download": {
+    "quality": "Kvalita stahování",
+    "original": "Originál",
     "start": "Stáhnout",
     "cancel": "Zrušit stahování",
     "remove": "Odstranit stažené",
@@ -122,6 +163,7 @@
     "completed": "Staženo",
     "failed": "Stahování selhalo",
     "queued": "Ve frontě",
+    "items": "položek",
     "no_downloads": "Žádná stahování",
     "confirm_remove": "Odstranit toto stažení?",
     "confirm_cancel": "Zrušit toto stahování?",
@@ -161,6 +203,8 @@
       "bottom_bar": "Zobrazit spodní indikátor průběhu",
       "low_quality": "Nízká kvalita dekódování (s menším využitím CPU)",
       "in_memory_cache": "Ve vyrovnávací paměti",
+      "subs_fallback": "Automatické načítání titulků",
+      "vo": "Video výstup",
       "hwdec": "Hardwarové dekódování",
       "force_directplay": "Vynutit přímé přehrávání",
       "osd_on_toggle": "Zobrazit OSD při pozastavení",
@@ -181,7 +225,8 @@
     "filter": {
       "mirror": "Překlopení videa",
       "hflip": "Vodorovně převrátit",
-      "vflip": "Vertikálně převrátit"
+      "vflip": "Vertikálně převrátit",
+      "rotation": "Rotation"
     },
     "aspect": {
       "header": "Aspekt videa",
@@ -250,6 +295,7 @@
       "single": "Jediná instance",
       "overclock": "Přetaktování CPU",
       "debug": "Zobrazení ladění",
+      "sync": "Zachovat nastavení pořadí",
       "theme": {
         "header": "Motiv (vyžaduje restart)",
         "1": "Automaticky",
@@ -276,10 +322,10 @@
   },
   "hints": {
     "hint1": "Vyberte hru z domovské obrazovky",
-    "hint2": "Podržte klávesu \uE0E5 a kliknutím na \uE0E0 přejděte do nabídky homebrew",
+    "hint2": "Podržte klávesu  a kliknutím na  přejděte do nabídky homebrew",
     "hint3": "V nabídce homebrew vyberte Switchfin",
     "hint4": "Volitelné: Odeslat Switchfin NSP na domovskou obrazovku",
-    "hint_nsp": "Kliknutím na \uE0E0 odešlete Switchfin NSP na domovskou obrazovku",
+    "hint_nsp": "Kliknutím na  odešlete Switchfin NSP na domovskou obrazovku",
     "hint_confirm": "Pokud odešlete NSP na domovskou obrazovku může to vést k banu\nProsím potvrďte znovu",
     "hint_right": "Obrázky jsou z internetu a autorská práva patří společnosti Nintendo Co., Ltd"
   }

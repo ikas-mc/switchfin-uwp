@@ -35,7 +35,10 @@ on:
         - aur
         - deb
       disable_builtin_nsp:
-        description: disable builtin NSP
+        description: Disable builtin NSP
+        type: boolean
+      disable_mupdf:
+        description: Disable MuPDF
         type: boolean
 
 jobs:
@@ -46,7 +49,7 @@ jobs:
       contents: write
     if: startsWith(github.ref, 'refs/tags/')
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         sparse-checkout: CHANGELOG.md
     - name: Extract Release Notes from CHANGELOG.md
@@ -100,9 +103,9 @@ jobs:
     container:
       image: devkitpro/devkita64:20260219
     env:
-      BASE_URL: https://github.com/dragonflylee/switchfin/releases/download/switch-portlibs
+      BASE_URL: https://github.com/${{ github.repository }}/releases/download/switch-portlibs
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         submodules: recursive
     - name: Update deko3d dependencies
@@ -113,13 +116,13 @@ jobs:
     - name: Update dependencies
       run: |
         dkp-pacman --noconfirm -U $BASE_URL/hacBrewPack-3.05-1-x86_64.pkg.tar.zst
-        for pkg in mbedtls-3.6.5-1 libssh2-1.11.1-1 dav1d-1.5.3-1 curl-8.16.0-2 ffmpeg-7.1.5-5 libmpv${{ matrix.shuffix }}-0.36.0-5 nspmini-main-1; do
+        for pkg in mbedtls-3.6.7-1 libssh2-1.11.1-1 dav1d-1.5.4-1 curl-8.21.0-3 ffmpeg-7.1.5-5 mupdf-1.24.11-1 libmpv${{ matrix.shuffix }}-0.36.0-5 nspmini-main-1; do
           dkp-pacman --noconfirm -U $BASE_URL/switch-${pkg}-any.pkg.tar.zst
         done
         git config --system --add safe.directory $GITHUB_WORKSPACE
     - name: Build libusbhsfs
       run: |
-        git clone https://github.com/DarkMatterCore/libusbhsfs.git --depth=1
+        git clone https://github.com/DarkMatterCore/libusbhsfs.git -b v0.2.10 --depth=1
         make -C libusbhsfs BUILD_TYPE=GPL install -j$(nproc)
     - name: Build nro
       run: |
@@ -127,16 +130,17 @@ jobs:
           -DCMAKE_BUILD_TYPE=Release \
           -DPLATFORM_SWITCH=ON \
           -DUSE_LIBUSBHSFS=ON \
+          -DUSE_MUPDF=${{ github.event.inputs.disable_mupdf && 'OFF' || 'ON' }} \
           -DBUILTIN_NSP=${{ github.event.inputs.disable_builtin_nsp && 'OFF' || 'ON' }} \
           -DVERSION_BUILD=${{ github.run_number }}
         make -C build Switchfin.nro -j$(nproc)
     - name: Upload nro
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: Switchfin-NintendoSwitch${{ matrix.shuffix }}-${{ github.run_number }}
         path: build/Switchfin.nro
     - name: Upload elf
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: ns-dev-elf-${{ matrix.driver }}-${{ github.run_number }}
         path: build/Switchfin.elf
@@ -147,14 +151,14 @@ jobs:
     container:
       image: xfangfang/pacbrew:250221
     env:
-      BASE_URL: https://github.com/dragonflylee/switchfin/releases/download/pacbrew
+      BASE_URL: https://github.com/${{ github.repository }}/releases/download/pacbrew
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         submodules: recursive
     - name: Update dependencies
       run: |
-        for pkg in musl-1.5-3 mbedtls-2.28.10-2 sdl2-2.0.18-19 libcurl-7.80.0-5 dav1d-1.5.3-1 ffmpeg-7.1.5-3 libmpv-0.36.0-2; do
+        for pkg in musl-1.5-3 mbedtls-2.28.10-2 sdl2-2.0.18-19 libcurl-8.4.0-1 dav1d-1.5.4-1 ffmpeg-7.1.5-4 libmpv-0.36.0-3; do
           pacman --noconfirm -U $BASE_URL/ps4-openorbis-${pkg}-any.pkg.tar.gz
         done
         git config --system --add safe.directory $GITHUB_WORKSPACE
@@ -165,12 +169,12 @@ jobs:
         cmake -B build -DPLATFORM_PS4=ON -DVERSION_BUILD=${{ github.run_number }}
         make -C build -j$(nproc)
     - name: Upload pkg
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: Switchfin-PS4-${{ github.run_number }}
         path: build/*.pkg
     - name: Upload oelf
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: ps4-dev-oelf-${{ github.run_number }}
         path: build/Switchfin.oelf
@@ -179,33 +183,32 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ inputs.platform == 'psvita' || github.event_name != 'workflow_dispatch' }}
     container:
-      image: vitasdk/vitasdk:latest
+      image: vitasdk/vitasdk:2026.08
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         submodules: recursive
     - name: Update dependencies
       env:
-        BASE_URL: https://github.com/dragonflylee/switchfin/releases/download/vita-packages
+        BASE_URL: https://github.com/${{ github.repository }}/releases/download/vita-packages
       run: |
-        for pkg in mbedtls-3.6.5-1 curl-8.16.0-2 ffmpeg-n6.0-3 mpv-0.36.0-3; do
-          wget $BASE_URL/${pkg}-arm.tar.xz
+        for pkg in mbedtls-3.6.7-1 curl-8.16.0-3 mupdf-1.24.11-1 ffmpeg-n6.0-3 mpv-0.36.0-3; do
+          vdpm pacman --noconfirm -U $BASE_URL/${pkg}-vita.pkg.tar.xz
         done
-        apk add ninja
-        vdpm $PWD/*-arm.tar.xz
         git config --system --add safe.directory $GITHUB_WORKSPACE
     - name: Build
       run: |
         cmake -B build -G Ninja -DPLATFORM_PSV=ON -DUSE_GXM=ON \
+          -DUSE_MUPDF=${{ github.event.inputs.disable_mupdf && 'OFF' || 'ON' }} \
           -DUSE_VITA_SHARK=OFF -DVERSION_BUILD=${{ github.run_number }}
         cmake --build build
     - name: Upload vpk
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: Switchfin-Vita-${{ github.run_number }}
         path: build/Switchfin.vpk
     - name: Upload velf
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: psv-dev-velf-${{ github.run_number }}
         path: build/Switchfin.velf
@@ -227,7 +230,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     if: ${{ inputs.platform == 'flatpak' || github.event_name != 'workflow_dispatch' }}
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         submodules: recursive
     - name: Set workspace permissions
@@ -244,7 +247,7 @@ jobs:
         upload-artifact: false
         arch: ${{ matrix.arch }}
     - name: Upload Assets
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: Switchfin-Flatpak-${{ matrix.arch }}-${{ matrix.driver }}-${{ github.run_number }}
         path: Switchfin-*.flatpak
@@ -273,8 +276,8 @@ jobs:
         apt-get update
         apt-get install -y --no-install-recommends debhelper cmake build-essential \
           ninja-build git wget ca-certificates xorg-dev libdbus-1-dev libssl-dev \
-          libwayland-dev libxkbcommon-dev libwebp-dev libmpv-dev
-    - uses: actions/checkout@v6
+          libwayland-dev libxkbcommon-dev libwebp-dev libmpv-dev libmupdf-dev
+    - uses: actions/checkout@v7
       with:
         submodules: recursive
     - name: Build deb
@@ -285,7 +288,7 @@ jobs:
         dpkg-buildpackage -b -nc
         mv ../switchfin_*.deb $GITHUB_WORKSPACE
     - name: Upload Assets
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: Switchfin-${{ matrix.img }}-${{ matrix.tag }}-${{ matrix.arch }}-${{ github.run_number }}
         path: switchfin_*.deb
@@ -294,13 +297,13 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ inputs.platform == 'aur' || github.event_name != 'workflow_dispatch' }}
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         submodules: recursive
     - name: Build aur
       run: docker run --rm --tty --network host -v $PWD:/work -e PUID=$(id -u) -w /work/scripts/aur archlinux bash entrypoint.sh
     - name: Upload Assets
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: Switchfin-Archlinux-${{ github.run_number }}
         path: scripts/aur/*.pkg.tar.*
@@ -316,13 +319,13 @@ jobs:
         - { tag: Intel, arch: x86_64, target: "10.15" }
         tag: [ Silicon, Intel ]
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         submodules: recursive
     - name: Install deps
       run: |
         brew install create-dmg dylibbundler
-        curl -sSL https://github.com/dragonflylee/switchfin/releases/download/macos-dylib/dylib-ffmpeg8-mpv41-${{ matrix.tag }}.tar.gz | tar zxf - -C ${{ runner.temp }}
+        curl -sSL https://github.com/${{ github.repository }}/releases/download/macos-dylib/dylib-mpv41-${{ matrix.tag }}.tar.gz | tar zxf - -C ${{ runner.temp }}
     - name: Build App
       env:
         DYLD_LIBRARY_PATH: ${{ runner.temp }}/lib
@@ -331,6 +334,7 @@ jobs:
           -DCMAKE_BUILD_TYPE=Release \
           -DPLATFORM_DESKTOP=ON \
           -DUSE_SYSTEM_GLFW=ON \
+          -DUSE_MUPDF=${{ github.event.inputs.disable_mupdf && 'OFF' || 'ON' }} \
           -DCMAKE_OSX_ARCHITECTURES=${{ matrix.arch }} \
           -DCMAKE_OSX_DEPLOYMENT_TARGET=${{ matrix.target }} \
           -DVERSION_BUILD=${{ github.run_number }}
@@ -347,7 +351,7 @@ jobs:
           --app-drop-link 600 185 --volicon ./scripts/macos/dmg.icns \
           --volname "Switchfin" Switchfin-macOS-${{ matrix.tag }}-${{ github.run_number }}.dmg "dist/"
     - name: Upload Assets
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: Switchfin-macOS-${{ matrix.tag }}-${{ github.run_number }}
         path: Switchfin-*.dmg
@@ -377,13 +381,13 @@ jobs:
         install: >-
           mingw-w64-${{ matrix.env }}-ninja
           mingw-w64-${{ matrix.env }}-cc
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         submodules: recursive
     - name: Install dependency
       run: |
-        for pkg in glfw-3.5.0-1 curl-8.16.0-1 mpv-0.41.0-1 libwebp-1.6.0-1; do
-          curl -sLO https://github.com/dragonflylee/switchfin/releases/download/mingw-packages/${MINGW_PACKAGE_PREFIX}-${pkg}-any.pkg.tar.zst
+        for pkg in glfw-3.5.0-1 curl-8.21.0-1 mpv-0.41.0-2 libmupdf-1.24.11-1 libwebp-1.6.0-1; do
+          curl -sLO https://github.com/${{ github.repository }}/releases/download/mingw-packages/${MINGW_PACKAGE_PREFIX}-${pkg}-any.pkg.tar.zst
         done
         pacman -U --noconfirm *.pkg.tar.zst
 
@@ -408,25 +412,29 @@ jobs:
           -DUSE_SYSTEM_GLFW=ON \
           -DUSE_D3D11=ON \
           -DUSE_LIBROMFS=ON \
+          -DUSE_MUPDF=${{ github.event.inputs.disable_mupdf && 'OFF' || 'ON' }} \
           -DVERSION_BUILD=${{ github.run_number }}
         cmake --build build
         cv2pdb64 build/Switchfin.exe
         cp -a README.md ${MINGW_PREFIX}/bin/libmpv-2.dll build
+        if [ "${{ github.event.inputs.disable_mupdf }}" != "true" ]; then
+          cp -a ${MINGW_PREFIX}/bin/libmupdf.dll build
+        fi
     - name: Upload Assets
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: Switchfin-windows-${{ matrix.arch }}-${{ github.run_number }}
         path: |
           build/Switchfin.exe
           build/Switchfin.pdb
-          build/libmpv-2.dll
           build/README.md
+          build/*.dll
 
   build-android:
-    if: ${{ inputs.platform == 'android' || startsWith(github.ref, 'refs/tags/') }}
+    if: ${{ inputs.platform == 'android' || (github.event_name != 'workflow_dispatch' && startsWith(github.ref, 'refs/tags/')) }}
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         submodules: recursive
     - uses: nttld/setup-ndk@v1.6.0
@@ -437,7 +445,7 @@ jobs:
     - name: Install dependency
       run: |
         sudo apt-get update
-        sudo apt-get install -y ninja-build pkg-config meson nasm
+        sudo apt-get install -y ninja-build pkg-config nasm gperf
     - name: Cache depends
       id: cache-deps
       uses: actions/cache@v5
@@ -447,6 +455,7 @@ jobs:
     - name: Build packages
       if: steps.cache-deps.outputs.cache-hit != 'true'
       run: |
+        sudo pip install meson --break-system-packages
         make -C scripts/android TMPDIR=${{ runner.temp }} download
         make -C scripts/android TMPDIR=${{ runner.temp }} ABI=armeabi-v7a \
           ANDROID_NDK=${{ steps.setup-ndk.outputs.ndk-path }} build
@@ -457,7 +466,7 @@ jobs:
         ${{ github.workspace }}/library/borealis/build_libromfs_generator.sh
         cd app/platform/android && ./gradlew assembleRelease -PversionCode=${{ github.run_number }}
     - name: Upload dist
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: Switchfin-android-${{ github.run_number }}
         path: app/platform/android/app/build/outputs/apk/release/*.apk

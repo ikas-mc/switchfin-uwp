@@ -55,6 +55,15 @@
     "episode": "Episode",
     "speed_up": "Current speed {}"
   },
+  "ebook": {
+    "zoom": "Zoom",
+    "zoom_in": "Zoom In",
+    "zoom_out": "Zoom Out",
+    "single_page": "Single Page",
+    "double_page": "Double Page",
+    "outline": "Outline",
+    "no_outline": "No outline"
+  },
   "danmaku": {
     "header": "Danmaku setting",
     "performance": {
@@ -94,6 +103,7 @@
     "name": "Name",
     "seasons": "Seasons",
     "add_favorite": "Add to favorites",
+    "del_favorite": "Remove favorites",
     "mark_played": "Mark played",
     "mark_unplayed": "Mark unplayed",
     "play": "Play",

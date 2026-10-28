@@ -52,20 +52,20 @@ constexpr uint32_t MINIMUM_WINDOW_HEIGHT = 360;
 #include "utils/thread.hpp"
 #include "view/mpv_core.hpp"
 #include "view/danmaku_core.hpp"
-#include "view/video_view.hpp"
+#include <lunasvg.h>
 
 std::unordered_map<AppConfig::Item, AppConfig::Option> AppConfig::settingMap = {
     {APP_THEME, {"app_theme", {"auto", "light", "dark"}}},
     {APP_LANG, {"app_lang", {brls::LOCALE_AUTO, brls::LOCALE_EN_US, brls::LOCALE_ZH_HANS, brls::LOCALE_ZH_HANT,
                                 brls::LOCALE_JA, brls::LOCALE_Ko, brls::LOCALE_RU, brls::LOCALE_DE, brls::LOCALE_FR,
                                 brls::LOCALE_ES, brls::LOCALE_PT, "cs", "uk", "tr", "vi"}}},
-    {APP_UPDATE, {"app_update"}},
     {APP_UI_SCALE, {"app_ui_scale", {"544p", "720p", "900p", "1080p"}}},
     {AUDIO_CHANNELS, {"audio-channels", {"auto-safe", "stereo", "mono"}}},
     {KEYMAP, {"keymap", {"xbox", "ps", "keyboard"}}},
     {WINDOW_STATE, {"window_state"}},
     {TRANSCODEC, {"transcodec", {"h264", "hevc", "av1"}}},
     {FORCE_DIRECTPLAY, {"force_directplay"}},
+    {MAXDAY_NEXTUP, {"maxday_nextup"}},
     {FULLSCREEN, {"fullscreen"}},
     {OSD_ON_TOGGLE, {"osd_on_toggle"}},
     {TOUCH_GESTURE, {"touch_gesture"}},
@@ -73,6 +73,7 @@ std::unordered_map<AppConfig::Item, AppConfig::Option> AppConfig::settingMap = {
     {SYNC_SETTING, {"sync_setting"}},
     {OVERCLOCK, {"overclock"}},
     {MPV_VO, {"mpv_vo", {"gpu", "gpu-next", "mediacodec_embed"}}},
+    {MPV_RENDER, {"mpv_render"}},
     {PLAYER_BOTTOM_BAR, {"player_bottom_bar"}},
     {PLAYER_LOW_QUALITY, {"player_low_quality"}},
     {PLAYER_SUBS_FALLBACK, {"player_subs_fallback"}},
@@ -135,6 +136,7 @@ std::unordered_map<AppConfig::Item, AppConfig::Option> AppConfig::settingMap = {
     {HTTP_PROXY, {"http_proxy"}},
 
     {DOWNLOAD_QUALITY, {"download_quality", {"Original", "1080p", "720p", "480p"}, {0, 1, 2, 3}}},
+    {DOWNLOAD_PATH, {"download_path"}},
 
     {KEY_REFRESH, {"key_refresh"}},
     {KEY_LAST, {"key_last"}},
@@ -176,7 +178,6 @@ static std::string generateDeviceId() {
             cid[0xA], cid[0xB], cid[0xC], cid[0xD], cid[0xE], cid[0xF]);
         return text;
     }
-
 #elif defined(ANDROID)
     JNIEnv* env = static_cast<JNIEnv*>(SDL_AndroidGetJNIEnv());
     jclass utilsClass = env->FindClass("org/libsdl/app/PlatformUtils");
@@ -231,7 +232,7 @@ static std::string generateDeviceId() {
 }
 
 bool AppConfig::init() {
-    
+
 #if  defined (_WINRT_)
     const std::string path = this->configDir () + "\\config.json";
     std::ifstream f (path);
@@ -242,7 +243,7 @@ bool AppConfig::init() {
     const std::string path = this->configDir () + "/config.json";
     std::ifstream f(path);
 #endif
-    
+
     if (f.is_open()) {
         try {
             nlohmann::json::parse(f).get_to(*this);
@@ -467,6 +468,15 @@ bool AppConfig::init() {
     if (getItem(AppConfig::OVERCLOCK, false)) {
         SwitchSys::setClock(true);
     };
+    PlFontData font;
+    if (R_SUCCEEDED(plGetSharedFontByType(&font, PlSharedFontType_Standard))) {
+        lunasvg_add_font_face_from_data("", false, false, font.address, font.size, nullptr, nullptr);
+    }
+#elif !defined(USE_LIBROMFS)
+    lunasvg_add_font_face_from_file("", false, false, BRLS_ASSET("font/switch_font.ttf"));
+#else
+    auto& font = romfs::get("font/switch_font.ttf");
+    if (font.valid()) lunasvg_add_font_face_from_data("", false, false, font.data(), font.size(), nullptr, nullptr);
 #endif
     Ums::instance().init();
 
@@ -540,26 +550,33 @@ bool AppConfig::checkLogin() {
     }
 
     auto is_user = [this](const AppUser& u) { return u.id == this->user_id; };
-    this->user = std::find_if(this->users.begin(), this->users.end(), is_user);
-    if (this->user == this->users.end()) return false;
+    auto userIter = std::find_if(this->users.begin(), this->users.end(), is_user);
+    if (userIter == this->users.end()) return false;
 
-    auto is_server = [this](const AppServer& s) { return s.id == this->user->server_id; };
+    auto is_server = [&userIter](const AppServer& s) { return s.id == userIter->server_id; };
     auto it = std::find_if(this->servers.begin(), this->servers.end(), is_server);
     if (it == this->servers.end()) return false;
 
     this->server_url = it->urls.front();
-    HTTP::Header header = {this->getAuth(this->user->access_token)};
+    HTTP::Header header = {this->getAuth(userIter->access_token)};
     std::string uri = fmt::format("{}/Users/{}", this->server_url, this->user_id);
     try {
         std::string resp = HTTP::get(uri, header, HTTP::Timeout{});
         jellyfin::UserInfo info = nlohmann::json::parse(resp);
-        this->user->is_admin = info.Policy.IsAdministrator;
-        this->user->config = std::move(info.Configuration);
+        userIter->is_admin = info.Policy.IsAdministrator;
+        userIter->config = std::move(info.Configuration);
         return true;
     } catch (const std::exception& ex) {
         brls::Logger::warning("AppConfig {} checkLogin: {}", this->server_url, ex.what());
         return false;
     }
+}
+
+const AppUser& AppConfig::currentUser() const {
+    static const AppUser empty{};
+    auto it = std::find_if(this->users.begin(), this->users.end(),
+        [this](const AppUser& u) { return u.id == this->user_id; });
+    return it != this->users.end() ? *it : empty;
 }
 
 bool AppConfig::checkDanmuku() {
@@ -585,7 +602,7 @@ bool AppConfig::checkDanmuku() {
     return false;
 }
 
-std::string AppConfig::configDir() {
+std::string AppConfig::configDir() const {
 #if __SWITCH__
     return fmt::format("sdmc:/switch/{}", AppVersion::getPackageName());
 #elif defined(__PS4__)
@@ -612,6 +629,21 @@ std::string AppConfig::configDir() {
 #endif
 }
 
+std::string AppConfig::downloadDir() const {
+    const std::string fallback = this->configDir() + "/downloads";
+    std::string dir = this->getItem<std::string>(AppConfig::DOWNLOAD_PATH, fallback);
+    if (dir.empty()) dir = fallback;
+
+    try {
+        auto path = fs::u8path(dir);
+        if (!fs::exists(path)) fs::create_directories(path);
+        return dir;
+    } catch (const std::exception& e) {
+        brls::Logger::warning("Invalid download dir '{}': {}", dir, e.what());
+        return fallback;
+    }
+}
+
 std::string AppConfig::ipcSocket() {
 #if defined(_WINRT_)
     return "";
@@ -623,8 +655,7 @@ std::string AppConfig::ipcSocket() {
 }
 
 void AppConfig::checkRestart(char* argv[]) {
-
-#if !defined(__PS4__) && !defined(__SWITCH__) && !defined(ANDROID)    
+#if !defined(__PS4__) && !defined(__SWITCH__) && !defined(ANDROID)
     if (brls::DesktopPlatform::RESTART_APP) {
         brls::Logger::info("Restart app {}", argv[0]);
 
@@ -640,6 +671,7 @@ void AppConfig::checkRestart(char* argv[]) {
 
 int AppConfig::getOptionIndex(const Item item, int default_index) const {
     auto it = settingMap.find(item);
+    if (it == settingMap.end()) return default_index;
     if (setting.contains(it->second.key)) {
         try {
             std::string value = this->setting.at(it->second.key);
@@ -654,6 +686,7 @@ int AppConfig::getOptionIndex(const Item item, int default_index) const {
 
 int AppConfig::getValueIndex(const Item item, int default_index) const {
     auto it = settingMap.find(item);
+    if (it == settingMap.end()) return default_index;
     if (setting.contains(it->second.key)) {
         try {
             long value = this->setting.at(it->second.key);
@@ -701,11 +734,10 @@ void AppConfig::addUser(const AppUser& u, const std::string& url) {
         it->is_admin = u.is_admin;
         it->config = std::move(u.config);
     } else {
-        it = this->users.insert(it, u);
+        this->users.push_back(u);
     }
     this->server_url = url;
     this->user_id = u.id;
-    this->user = it;
     this->save();
 }
 

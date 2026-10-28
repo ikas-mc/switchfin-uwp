@@ -1,11 +1,7 @@
 #include "tab/download_tab.hpp"
 #include "tab/remote_view.hpp"
 #include "view/recycling_grid.hpp"
-#include "view/video_view.hpp"
-#include "view/mpv_core.hpp"
-#include "view/video_profile.hpp"
-#include "view/player_setting.hpp"
-#include "view/presenter.hpp"
+#include "api/jellyfin.hpp"
 #include "utils/config.hpp"
 #include "utils/dialog.hpp"
 #include "utils/image.hpp"
@@ -244,7 +240,7 @@ public:
             } else {
                 detail = item.name;
             }
-            RemoteView::play(path, detail);
+            RemoteView::play(path, detail, item.itemId);
         } else if (item.status == DownloadStatus::Downloading) {
             std::string id = item.itemId;
             Dialog::cancelable(

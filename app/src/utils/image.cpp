@@ -109,6 +109,10 @@ Image::Image() : image(nullptr) {
 Image::~Image() { brls::Logger::verbose("delete Image {}", fmt::ptr(this)); }
 
 void Image::with(brls::Image* view, const std::string& url) {
+    Image::with(view, url, {});
+}
+
+void Image::with(brls::Image* view, const std::string& url, const HTTP::Header& headers) {
     int tex = brls::TextureCache::instance().getCache(url);
     if (tex > 0) {
         view->innerSetImage(tex);
@@ -127,12 +131,16 @@ void Image::with(brls::Image* view, const std::string& url) {
 
     auto it = requests.insert(std::make_pair(view, item));
     if (!it.second) {
+        // 该 view 已有进行中的请求：归还从池中取出的 item，避免池泄漏
         brls::Logger::warning("insert Image {} failed", fmt::ptr(view));
+        item->image = nullptr;
+        pool.push_back(item);
         return;
     }
 
     item->image = view;
     item->url = url;
+    item->headers = headers;
     item->isCancel->store(false);
     view->ptrLock();
     // 设置图片组件不处理纹理的销毁，由缓存统一管理纹理销毁
@@ -142,6 +150,8 @@ void Image::with(brls::Image* view, const std::string& url) {
 }
 
 void Image::cancel(brls::Image* view) {
+    if (view == nullptr) return;
+
     brls::TextureCache::instance().removeCache(view->getTexture());
     view->clear();
 
@@ -156,6 +166,7 @@ void Image::doRequest(HTTP& s) {
     try {
         std::ostringstream body;
         HTTP::set_option(s, this->isCancel, HTTP::Timeout{});
+        if (!this->headers.empty()) HTTP::set_option(s, this->headers);
         s._get(this->url, &body);
         std::string data = body.str();
         uint8_t* imageData = nullptr;
@@ -231,10 +242,15 @@ void Image::doRequest(HTTP& s) {
 }
 
 void Image::clear(brls::Image* view) {
+    if (view == nullptr) return;
+
     std::lock_guard<std::mutex> lock(requestMutex);
 
     auto it = requests.find(view);
     if (it == requests.end()) return;
+
+    // 归属校验：防止已被 cancel/复用的旧任务回调误清空新请求
+    if (it->second->image != view) return;
 
     it->second->image->ptrUnlock();
     it->second->image = nullptr;

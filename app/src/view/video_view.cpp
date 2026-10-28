@@ -613,13 +613,13 @@ void VideoView::registerMpvEvent() {
         case MpvEventEnum::UPDATE_DURATION:
             if (this->seekingRange == 0) {
                 this->rightStatusLabel->setText(misc::sec2Time(mpv.duration));
-                this->osdSlider->setProgress(mpv.playback_time / mpv.duration);
+                this->osdSlider->setProgress((float)mpv.playback_time / mpv.duration);
             }
             break;
         case MpvEventEnum::UPDATE_PROGRESS:
             if (this->seekingRange == 0) {
                 this->leftStatusLabel->setText(misc::sec2Time(mpv.video_progress));
-                this->osdSlider->setProgress(mpv.playback_time / mpv.duration);
+                this->osdSlider->setProgress((float)mpv.playback_time / mpv.duration);
             }
             break;
         case MpvEventEnum::VIDEO_SPEED_CHANGE:
@@ -865,14 +865,41 @@ void VideoView::refreshDanmakuIcon() {
     }
 }
 
-void VideoView::setClipPoint(const std::vector<float>& clips) {
-    if (clips.empty()) {
+void VideoView::setChapters(const std::vector<jellyfin::MediaChapter>& chaps, uint64_t duration) {
+    if (chaps.empty()) {
         this->osdSlider->clearClipPoint();
         return;
     }
     if (MPVCore::CLIP_POINT) {
+        std::vector<float> clips;
+        for (auto& c : chaps) {
+            clips.push_back(float(c.StartPositionTicks) / float(duration));
+        }
         this->osdSlider->setClipPoint(clips);
     }
+    /// 章节信息
+    this->btnVideoChapter->registerClickAction([chaps](brls::View* view) {
+        int selectedChapter = -1;
+        uint64_t ticks = MPVCore::instance().video_progress * jellyfin::PLAYTICKS;
+        std::vector<std::string> values;
+        for (auto& item : chaps) {
+            values.push_back(item.Name);
+            if (item.StartPositionTicks <= ticks) selectedChapter++;
+        }
+
+        brls::Dropdown* dropdown = new brls::Dropdown(
+            "main/player/chapter"_i18n, values,
+            [chaps](int selected) {
+                int64_t offset = chaps[selected].StartPositionTicks;
+                MPVCore::instance().seek(offset / jellyfin::PLAYTICKS);
+            },
+            selectedChapter);
+        brls::Application::pushActivity(new brls::Activity(dropdown));
+        return true;
+    });
+    this->btnVideoChapter->addGestureRecognizer(new brls::TapGestureRecognizer(this->btnVideoChapter));
+    this->btnVideoChapter->setVisibility(brls::Visibility::VISIBLE);
+    for (auto& view : this->btnVideoChapter->getChildren()) view->setVisibility(brls::Visibility::VISIBLE);
 }
 
 void VideoView::playNext(int offset) { this->playIndexEvent.fire(this->playIndex + offset); }

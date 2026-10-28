@@ -11,7 +11,7 @@
 #ifdef MPV_SW_RENDER
 #include <mpv/render.h>
 #elif defined(BOREALIS_USE_D3D11)
-#include <mpv/render_dxgi.h>
+#include <mpv/render_d3d11.h>
 #elif defined(BOREALIS_USE_DEKO3D)
 #include <mpv/render_dk3d.h>
 #elif defined(BOREALIS_USE_GXM)
@@ -72,7 +72,7 @@ public:
 
     void stop();
 
-    void seek(int64_t value, const std::string &flags = "absolute");
+    void seek(double value, const std::string &flags = "absolute");
 
     void setSpeed(double value);
 
@@ -138,7 +138,7 @@ public:
 #elif defined(__PSV__)
     inline static std::string PLAYER_HWDEC_METHOD = "vita-copy";
 #elif defined(__PS4__)
-    inline static std::string PLAYER_HWDEC_METHOD = "no";
+    inline static std::string PLAYER_HWDEC_METHOD = "auto-copy";
 #else
     inline static std::string PLAYER_HWDEC_METHOD = "auto-safe";
 #endif
@@ -189,7 +189,9 @@ private:
         {MPV_RENDER_PARAM_INVALID, nullptr},
     };
 #elif defined(BOREALIS_USE_D3D11)
-    mpv_render_param mpv_params[1] = {
+    mpv_d3d11_fbo mpv_fbo;
+    mpv_render_param mpv_params[2] = {
+        {MPV_RENDER_PARAM_D3D11_FBO, &mpv_fbo},
         {MPV_RENDER_PARAM_INVALID, nullptr},
     };
 #elif defined(BOREALIS_USE_DEKO3D)

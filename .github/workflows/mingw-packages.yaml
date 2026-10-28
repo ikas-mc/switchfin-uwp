@@ -42,22 +42,27 @@ jobs:
           mingw-w64-${{ matrix.env }}-meson
           mingw-w64-${{ matrix.env }}-cmake
           mingw-w64-${{ matrix.env }}-cc
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         sparse-checkout: scripts/mingw64
     - name: Build packages
       run: |
         cd scripts/mingw64
 
-        for pkg in mbedtls libssh2 freetype harfbuzz libass dav1d ffmpeg spirv-headers spirv-tools glslang spirv-cross shaderc libplacebo; do
+        for pkg in uchardet mbedtls libssh2 freetype harfbuzz fribidi libass dav1d ffnvcodec-headers libwebp ffmpeg spirv-headers spirv-tools glslang spirv-cross shaderc libplacebo; do
           echo building $pkg
           pushd $pkg; makepkg-mingw -sciCf --noconfirm; popd
         done
 
-        for pkg in mpv glfw libwebp curl; do
+        for pkg in mpv glfw curl mupdf; do
           echo building $pkg
           pushd $pkg; makepkg-mingw -scCf --noconfirm; popd
         done
+    - name: Archive Build Packages
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ matrix.sys }}-${{ github.run_number }}
+        path: scripts/mingw64/*/*.pkg.tar.zst
     - name: Upload packages
       uses: softprops/action-gh-release@v3
       with:
@@ -68,6 +73,7 @@ jobs:
           scripts/mingw64/curl/*.pkg.tar.zst
           scripts/mingw64/glfw/*.pkg.tar.zst
           scripts/mingw64/libwebp/*.pkg.tar.zst
+          scripts/mingw64/mupdf/*.pkg.tar.zst
           scripts/mingw64/mpv/*.pkg.tar.zst
         body: |
           ![download](https://img.shields.io/github/downloads/${{ github.repository }}/mingw-packages/total?label=Downloads)

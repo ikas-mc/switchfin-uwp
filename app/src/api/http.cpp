@@ -80,8 +80,8 @@ private:
     std::string m;
 };
 
-static std::string user_agent =
-    fmt::format("{}/{} ({})", AppVersion::getPackageName(), AppVersion::getVersion(), AppVersion::getPlatform());
+const std::string HTTP::USER_AGENT = fmt::format(
+    "Mozilla/5.0 {}/{} ({})", AppVersion::getPackageName(), AppVersion::getVersion(), AppVersion::getPlatform());
 
 /// @brief curl context
 
@@ -112,7 +112,7 @@ HTTP::HTTP() : chunk(nullptr) {
     this->easy = curl_easy_init();
     global.init_lock.unlock();
 
-    curl_easy_setopt(this->easy, CURLOPT_USERAGENT, user_agent.c_str());
+    curl_easy_setopt(this->easy, CURLOPT_USERAGENT, USER_AGENT.c_str());
     curl_easy_setopt(this->easy, CURLOPT_FOLLOWLOCATION, 1L);
     curl_easy_setopt(this->easy, CURLOPT_SHARE, global.share);
     // enable all supported built-in compressions
@@ -120,6 +120,13 @@ HTTP::HTTP() : chunk(nullptr) {
     curl_easy_setopt(this->easy, CURLOPT_VERBOSE, 0L);
     curl_easy_setopt(this->easy, CURLOPT_SSL_VERIFYPEER, 0L);
     curl_easy_setopt(this->easy, CURLOPT_SSL_VERIFYHOST, 0L);
+    // Every request runs from a background thread (ThreadPool / brls::async), so
+    // libcurl must never reach for SIGALRM to time out a name resolve — signals
+    // only work on the main thread and are unsafe multi-threaded (curl docs:
+    // "libcurl cannot function properly multi-threaded unless CURLOPT_NOSIGNAL
+    // is set"). With NOSIGNAL, DNS timeouts rely solely on the async (threaded)
+    // resolver, which is why the Vita curl build must enable it.
+    curl_easy_setopt(this->easy, CURLOPT_NOSIGNAL, 1L);
 #if LIBCURL_VERSION_NUM >= 0x071900 && !defined(__PS4__)
     curl_easy_setopt(this->easy, CURLOPT_TCP_KEEPALIVE, 1L);
 #endif

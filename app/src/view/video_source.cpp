@@ -12,9 +12,17 @@
 #include "view/video_card.hpp"
 #include "view/video_source.hpp"
 #include "view/context_menu.hpp"
+#include "view/ebook_view.hpp"
 #include "api/jellyfin.hpp"
 
 using namespace brls::literals;  // for _i18n
+
+const std::string badgeXML = R"xml(
+    <svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="38" height="32" viewBox="0 0 38 32">
+        <rect width="38" height="32" rx="12" fill="#028087" />
+        <text x="18" y="23" font-family="Arial" font-size="22" fill="white" text-anchor="middle">{}</text>
+    </svg>
+)xml";
 
 class EpisodeCardCell : public BaseCardCell {
 public:
@@ -22,7 +30,6 @@ public:
 
     BRLS_BIND(brls::Label, labelName, "episode/card/name");
     BRLS_BIND(brls::Label, labelOverview, "episode/card/overview");
-    BRLS_BIND(SVGImage, badgeFavorite, "video/card/badge/favorite");
 };
 
 class EpisodeDataSource : public RecyclingGridDataSource {
@@ -223,6 +230,10 @@ RecyclingGridItem* VideoDataSource::cellForRow(RecyclingView* recycler, size_t i
         cell->rectProgress->setWidthPercentage(item.UserData.PlayedPercentage);
         cell->rectProgress->getParent()->setVisibility(brls::Visibility::VISIBLE);
         cell->badgeTopRight->setVisibility(brls::Visibility::GONE);
+    } else if (item.UserData.UnplayedItemCount > 0) {
+        cell->labelRating->setVisibility(brls::Visibility::INVISIBLE);
+        cell->badgeTopRight->setImageFromSVGString(fmt::format(badgeXML, item.UserData.UnplayedItemCount));
+        cell->badgeTopRight->setVisibility(brls::Visibility::VISIBLE);
     } else {
         cell->labelRating->setVisibility(brls::Visibility::INVISIBLE);
         cell->rectProgress->getParent()->setVisibility(brls::Visibility::GONE);
@@ -261,6 +272,15 @@ void VideoDataSource::onItemSelected(brls::Box* recycler, size_t index) {
         std::string query = HTTP::encode_form({{"api_key", conf.getToken()}});
         std::string url = conf.getUrl() + fmt::format(fmt::runtime(jellyfin::apiDownload), item.Id, query);
         brls::Application::pushActivity(new GalleryActivity(url));
+#ifdef USE_MUPDF
+    } else if (item.Type == jellyfin::mediaTypeBook) {
+        auto view = new EBookView();
+        auto& conf = AppConfig::instance();
+        std::string query = HTTP::encode_form({{"api_key", conf.getToken()}});
+        std::string url = conf.getUrl() + fmt::format(fmt::runtime(jellyfin::apiDownload), item.Id, query);
+        view->open(url, item.UserData.PlayedPercentage);
+        brls::Application::pushActivity(new brls::Activity(view));
+#endif
     } else {
         auto dialog = new brls::Dialog(fmt::format("Unsupported media type: {}", item.Type));
         dialog->addButton("hints/cancel"_i18n, []() {});

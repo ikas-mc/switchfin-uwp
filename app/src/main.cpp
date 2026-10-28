@@ -25,7 +25,7 @@
 #include "activity/main_activity.hpp"
 #include "activity/server_list.hpp"
 #include "activity/hint_activity.hpp"
-#include "tab/server_add.hpp"
+#include "activity/loading_activity.hpp"
 #include "tab/home_tab.hpp"
 #include "tab/media_folder.hpp"
 #include "tab/search_tab.hpp"
@@ -171,21 +171,26 @@ int main(int argc, char* argv[]) {
         brls::Application::pushActivity(new HintActivity());
     } else if (items.size() > 0) {
         RemoteView::play(items.front());
-    } else if (!conf.checkLogin()) {
-        brls::Application::pushActivity(new ServerList());
     } else {
-        brls::Application::pushActivity(new MainActivity());
+        brls::Application::pushActivity(new LoadingActivity(), brls::TransitionAnimation::NONE);
+        brls::Application::blockInputs();
+        brls::async([]() {
+            const bool logged = AppConfig::instance().checkLogin();
+            brls::sync([logged]() {
+                brls::Application::unblockInputs();
+                brls::Application::clear();
+                if (!logged) {
+                    brls::Application::pushActivity(new ServerList());
+                } else {
+                    brls::Application::pushActivity(new MainActivity());
+                }
+            });
+        });
     }
 
-    GA("open_app",
-        {
-            {"version", AppVersion::getVersion()},
-            {"language", brls::Application::getLocale()},
-            {"resolution", fmt::format("{}x{}", brls::Application::windowWidth, brls::Application::windowHeight)},
-        })
+    GA("open_app")
 
-    std::string v = conf.getItem(AppConfig::APP_UPDATE, std::string("NaN"));
-    if (AppVersion::getVersion().compare(v)) AppVersion::checkUpdate();
+    AppVersion::checkUpdate();
 
     // Run the app
     while (brls::Application::mainLoop());

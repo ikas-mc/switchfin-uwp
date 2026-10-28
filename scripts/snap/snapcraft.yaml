@@ -2,7 +2,7 @@ name: switchfin
 summary: switchfin
 description: |
   third-party PC player for Jellyfin
-version: "0.9.1"
+version: "0.9.4"
 grade: stable
 icon: ../resources/icon/icon.png
 base: core20
@@ -133,7 +133,7 @@ parts:
 
   dav1d:
     plugin: meson
-    source: https://downloads.videolan.org/pub/videolan/dav1d/1.5.3/dav1d-1.5.3.tar.xz
+    source: https://downloads.videolan.org/pub/videolan/dav1d/1.5.4/dav1d-1.5.4.tar.xz
     source-type: tar
     meson-parameters:
       - --prefix=/usr
@@ -147,7 +147,7 @@ parts:
       - -usr/share
 
   libass:
-    source: https://github.com/libass/libass/releases/download/0.17.4/libass-0.17.4.tar.gz
+    source: https://github.com/libass/libass/releases/download/0.17.5/libass-0.17.5.tar.gz
     source-type: tar
     plugin: autotools
     autotools-configure-parameters:

@@ -29,6 +29,15 @@ cleanup:
   - /share/gtk-doc
 
 modules:
+  - name: mupdf
+    buildsystem: simple
+    build-commands:
+      - make -j ${FLATPAK_BUILDER_N_JOBS} prefix=${FLATPAK_DEST} build=release OS=Linux USE_SYSTEM_LIBS=yes USE_SYSTEM_GUMBO=no USE_SYSTEM_JBIG2DEC=no TOOL_APPS= VIEW_APPS= install-shared-c
+    sources:
+      - type: archive
+        url: https://casper.mupdf.com/downloads/archive/mupdf-1.24.11-source.tar.lz
+        sha256: ac159293040934e250e4495782f8cd04c8cbbaf992fbd9faf32dab2ec657117b
+
   - name: libmpv
     buildsystem: meson
     config-opts:
@@ -70,8 +79,8 @@ modules:
         buildsystem: meson
         sources:
           - type: archive
-            url: https://gitlab.freedesktop.org/emersion/libdisplay-info/-/releases/0.3.0/downloads/libdisplay-info-0.3.0.tar.xz
-            sha256: 6ae77cd937f9cf7d1321d35c116062c4911e8447010a6a713ac4286f7a9d5987
+            url: https://gitlab.freedesktop.org/emersion/libdisplay-info/-/releases/0.4.0/downloads/libdisplay-info-0.4.0.tar.xz
+            sha256: 43b180baa143e2035654759d84e2b2f5ee77d5fe817c423838c7fe59c0d68459
         modules:
           - name: hwdata
             cleanup:
@@ -80,8 +89,8 @@ modules:
               - --disable-blacklist
             sources:
               - type: archive
-                url: https://github.com/vcrhonek/hwdata/archive/v0.408.tar.gz
-                sha256: ac7c34efc5941d5cbf739a8f7f6c84b1c2edea493fd3fca10906ef64d7afd690
+                url: https://github.com/vcrhonek/hwdata/archive/v0.412.tar.gz
+                sha256: f0c64cd7e31d70a5fb3a52e53ab50a61e74c0421a6381eaa45114eec3bde5fe7
 
       - name: libplacebo
         buildsystem: meson
@@ -94,8 +103,8 @@ modules:
         sources:
           - type: git
             url: https://github.com/haasn/libplacebo.git
-            commit: cee9b076f2c63104ccfd497fa79c39a867293ec4
-            tag: v7.360.1
+            commit: 275f7dea27924cdd34ab2e6c20e448b6bc4fab65
+            tag: v7.387.0
             x-checker-data:
               type: git
               tag-pattern: ^v([\d.]+)$
@@ -105,8 +114,8 @@ modules:
           - --disable-static
         sources:
           - type: archive
-            url: https://github.com/libass/libass/releases/download/0.17.4/libass-0.17.4.tar.xz
-            sha256: 78f1179b838d025e9c26e8fef33f8092f65611444ffa1bfc0cfac6a33511a05a
+            url: https://github.com/libass/libass/releases/download/0.17.5/libass-0.17.5.tar.xz
+            sha256: 2dca25c0e0c837ddf00b52011b3f82cac1e4ddd3ad018227806b0c2288864acc
             x-checker-data:
               type: anitya
               project-id: 1560
@@ -118,7 +127,8 @@ modules:
         config-opts:
           - -DCMAKE_POLICY_VERSION_MINIMUM=3.5
           - -DCMAKE_BUILD_TYPE=Release
-          - -DBUILD_STATIC=0
+          - -DBUILD_STATIC=OFF
+          - -DBUILD_BINARY=OFF
         sources:
           - type: archive
             url: https://www.freedesktop.org/software/uchardet/releases/uchardet-0.0.8.tar.xz
@@ -144,7 +154,6 @@ modules:
           - --disable-muxers
           - --disable-filters
           - --enable-filter=hflip,vflip,transpose
-          - --enable-libssh2
           - --enable-libdrm
           - --enable-vaapi
           - --enable-vdpau
@@ -159,16 +168,14 @@ modules:
           - --enable-libass
         sources:
           - type: archive
-            url: https://ffmpeg.org/releases/ffmpeg-8.1.2.tar.xz
-            sha256: 464beb5e7bf0c311e68b45ae2f04e9cc2af88851abb4082231742a74d97b524c
+            url: https://ffmpeg.org/releases/ffmpeg-9.0.2.tar.xz
+            sha256: 8c3850283eb25fa026482078a04051e0be17347b09ef81a0849bec15a96e002e
             x-checker-data:
               type: anitya
               project-id: 5405
               url-template: https://ffmpeg.org/releases/ffmpeg-$version.tar.xz
           - type: patch
             path: patches/ffmpeg-v4l2request.patch
-          - type: patch
-            path: mingw64/ffmpeg/avio.patch
         modules:
           - name: nv-codec-headers
             cleanup:
@@ -178,25 +185,13 @@ modules:
               - PREFIX=/app
             sources:
               - type: archive
-                url: https://github.com/FFmpeg/nv-codec-headers/archive/n13.0.19.0.tar.gz
-                sha256: 86d15d1a7c0ac73a0eafdfc57bebfeba7da8264595bf531cf4d8db1c22940116
+                url: https://github.com/FFmpeg/nv-codec-headers/archive/n13.1.15.0.tar.gz
+                sha256: 2255bc74d038b95aa4be30f5f66322c2176acbdb90ada1851db6993536fbeaf7
                 x-checker-data:
                   type: anitya
                   project-id: 223796
                   stable-only: true
                   url-template: https://github.com/FFmpeg/nv-codec-headers/archive/n$version.tar.gz
-          - name: libssh2
-            buildsystem: cmake-ninja
-            config-opts:
-              - -DCMAKE_BUILD_TYPE=Release
-              - -DBUILD_SHARED_LIBS=ON
-              - -DBUILD_STATIC_LIBS=OFF
-              - -DBUILD_EXAMPLES=ON
-              - -DBUILD_TESTING=OFF
-            sources:
-              - type: archive
-                url: https://libssh2.org/download/libssh2-1.11.1.tar.xz
-                sha256: 9954cb54c4f548198a7cbebad248bdc87dd64bd26185708a294b2b50771e3769
 
   - name: glfw
     buildsystem: cmake-ninja
@@ -211,7 +206,7 @@ modules:
     sources:
       - type: git
         url: https://github.com/dragonflylee/glfw.git
-        commit: 444785324f6896da0acbef85614ecf5999831f2e
+        commit: 0a5289af91aae518b4dbf1413f563fd254b471af
 
   - name: switchfin
     buildsystem: cmake-ninja
@@ -221,6 +216,7 @@ modules:
       - -DUSE_SYSTEM_GLFW=ON
       - -DUSE_GLES2=OFF
       - -DUSE_EGL=ON
+      - -DUSE_MUPDF=ON
       - -DCMAKE_INSTALL=ON
     builddir: true
     sources:

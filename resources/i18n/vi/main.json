@@ -27,6 +27,18 @@
     "brief": "Một ứng dụng jellyfin dành cho bên thứ ba",
     "repo_header": "Kho lưu trữ"
   },
+  "dashboard": {
+    "session": "Phiên",
+    "device": "Thiết bị",
+    "activity": "Hoạt động",
+    "path": "Đường dẫn",
+    "restart": "Khởi động lại",
+    "confirm_restart": "Bạn có chắc muốn khởi động lại Jellyfin?",
+    "scan_all": "Quét tất cả thư viện",
+    "within_minute": "Trong vòng 1 phút",
+    "minute_ago": "{} phút trước",
+    "hour_ago": "{} giờ trước"
+  },
   "player": {
     "subtitle": "Phụ đề",
     "none": "Không",
@@ -42,6 +54,15 @@
     "error": "Lỗi trong khi phát",
     "episode": "Tập",
     "speed_up": "Tốc độ hệ tại {}"
+  },
+  "ebook": {
+    "zoom": "Thu phóng",
+    "zoom_in": "Phóng to",
+    "zoom_out": "Thu nhỏ",
+    "single_page": "Một trang",
+    "double_page": "Hai trang",
+    "outline": "Outline",
+    "no_outline": "No outline"
   },
   "danmaku": {
     "header": "Cài đặt Danmaku",
@@ -81,6 +102,8 @@
     "descending": "Giảm dần",
     "name": "Tên",
     "seasons": "mùa",
+    "add_favorite": "Thêm vào yêu thích",
+    "del_favorite": "Xóa khỏi yêu thích",
     "mark_played": "Đánh dấu đã xem",
     "mark_unplayed": "Đánh dấu chưa xem",
     "play": "Phát",
@@ -109,6 +132,7 @@
     "no_results": "Không có kết quả",
     "genres": {
       "movie": "Phim",
+      "music": "Nhạc",
       "series": "Phim Bộ",
       "episode": "Tập"
     }
@@ -130,6 +154,8 @@
     "required": "Nhập ít nhất tên và máy chủ."
   },
   "download": {
+    "quality": "Chất lượng tải xuống",
+    "original": "Nguyên gốc",
     "start": "Tải xuống",
     "cancel": "Hủy tải xuống",
     "remove": "Xóa bản tải",
@@ -137,6 +163,7 @@
     "completed": "Đã tải xuống",
     "failed": "Tải xuống thất bại",
     "queued": "Trong hàng đợi",
+    "items": "mục",
     "no_downloads": "Không có bản tải",
     "confirm_remove": "Xóa bản tải này?",
     "confirm_cancel": "Hủy tải xuống này?",
@@ -185,7 +212,8 @@
       "transcodec": "Chuyển mã",
       "audio_channels": "Kênh âm thanh",
       "video_quality": "Chất lượng video",
-      "subsync": "Đồng bộ phụ đề"
+      "subsync": "Đồng bộ phụ đề",
+      "vo": "Video output"
     },
     "transcode": {
       "header": "Chuyển mã"
@@ -294,10 +322,10 @@
   },
   "hints": {
     "hint1": "Chọn một game từ màn hình chính",
-    "hint2": "Giữ \uE0E5 và \uE0E0 để vào hbmenu",
+    "hint2": "Giữ  và  để vào hbmenu",
     "hint3": "Trong hbmenu, chọn Switchfin",
     "hint4": "Tuỳ chọn: Cài đặt Switchfin ra màn hình chính bằng NSP forwarder",
-    "hint_nsp": "Bấm \uE0E0 để cài đặt ra màn hình chính",
+    "hint_nsp": "Bấm  để cài đặt ra màn hình chính",
     "hint_confirm": "Cài đặt NSP forwarder có thể bị ban\nVui lòng xác nhận",
     "hint_right": "Những hình ảnh này được lấy từ Internet, và bản quyền thuộc về Nintendo Co., Ltd."
   }

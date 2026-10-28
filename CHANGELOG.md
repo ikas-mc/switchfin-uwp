@@ -1,5 +1,47 @@
 # Changelog
 
+## [0.9.4]
+
+### Added
+
+* add eBook viewer with MuPDF support
+* add local file gallery viewing
+* add unplayed item count badge to media cards
+
+### Fixed
+
+* improve websocket receive loop to handle stop condition correctly
+* PS4: improve shader handling of libmpv
+
+## [0.9.3]
+
+### Added
+
+* add chapter select on player view
+* add config for max nextup
+* add soft keyboard support for trimui
+
+### Fixed
+
+* show 'Title - Language' in subtitle/audio track selector, matching Jellyfin style (#236)
+* change seek parameter type from int64_t to double for improved precision
+* remove unused lastProgress assignment in VideoProgressSlider constructor
+* i18n: sync missing translation keys across all languages
+
+## [0.9.2]
+
+### Fixed
+
+* improve server addition logic and handle connection errors
+* Vita: resolve server hostnames without stalling on DNS
+* Vita/PSV: update mount path for Memory Stock
+* prevent sleep and dim screen idle during downloads
+
+### Add
+
+* add favorite functionality for movies and series
+* add full-screen loading activity and XML layout
+
 ## [0.9.1]
 
 ### Fixed

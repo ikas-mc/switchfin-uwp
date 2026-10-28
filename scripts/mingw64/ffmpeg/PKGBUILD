@@ -6,7 +6,7 @@
 _realname=ffmpeg
 pkgbase="mingw-w64-${_realname}"
 pkgname="${MINGW_PACKAGE_PREFIX}-${_realname}"
-pkgver=8.1.2
+pkgver=9.0.2
 pkgrel=3
 pkgdesc="Complete solution to record, convert and stream audio and video (mingw-w64)"
 arch=('any')
@@ -15,8 +15,6 @@ url="https://ffmpeg.org/"
 license=('spdx:GPL-3.0-or-later')
 depends=(
   "${MINGW_PACKAGE_PREFIX}-bzip2"
-  "${MINGW_PACKAGE_PREFIX}-fribidi"
-  "${MINGW_PACKAGE_PREFIX}-freetype"
   "${MINGW_PACKAGE_PREFIX}-dav1d"
   "${MINGW_PACKAGE_PREFIX}-libass"
   "${MINGW_PACKAGE_PREFIX}-libssh2-mbedtls"
@@ -29,8 +27,11 @@ makedepends=(
   "${MINGW_PACKAGE_PREFIX}-nasm"
 )
 options=('staticlibs' '!strip')
-source=("https://ffmpeg.org/releases/${_realname}-${pkgver}.tar.xz" "avio.patch")
-sha256sums=('464beb5e7bf0c311e68b45ae2f04e9cc2af88851abb4082231742a74d97b524c' 'SKIP')
+source=(
+  "https://ffmpeg.org/releases/${_realname}-${pkgver}.tar.xz"
+  "https://github.com/dragonflylee/ffmpeg/commit/avio.patch"
+)
+sha256sums=('8c3850283eb25fa026482078a04051e0be17347b09ef81a0849bec15a96e002e' 'SKIP')
 
 prepare() {
   cd ${_realname}-${pkgver}
@@ -45,6 +46,7 @@ build() {
     --arch=${CARCH%%-*} \
     --cc=${CC} \
     --cxx=${CXX} \
+    --extra-cflags=-DFFMPEG_STATIC_DLLEXPORT \
     --disable-shared \
     --enable-static \
     --pkg-config-flags=-static \

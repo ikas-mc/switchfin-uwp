@@ -1,20 +1,24 @@
 #include "tab/remote_view.hpp"
+#include "activity/gallery_activity.hpp"
 #include "view/recycling_grid.hpp"
 #include "view/svg_image.hpp"
+#include "view/ebook_view.hpp"
 #include "view/video_view.hpp"
 #include "view/video_profile.hpp"
 #include "view/mpv_core.hpp"
 #include "view/music_view.hpp"
 #include "view/player_setting.hpp"
 #include "client/local.hpp"
+#include "utils/thread.hpp"
 #include "utils/misc.hpp"
 #include "utils/config.hpp"
+#include "api/jellyfin.hpp"
 
 using namespace brls::literals;
 
 class RemotePlayer : public brls::Box {
 public:
-    RemotePlayer(const remote::DirEntry& item) {
+    RemotePlayer(const remote::DirEntry& item, const std::string& itemId = "") : itemId(itemId) {
         float width = brls::Application::contentWidth;
         float height = brls::Application::contentHeight;
         view->setDimensions(width, height);
@@ -42,6 +46,28 @@ public:
                 const char* flag = MPVCore::SUBS_FALLBACK ? "select" : "auto";
                 for (auto& it : this->subtitles) {
                     mpv.command("sub-add", it.second.c_str(), flag, it.first.c_str());
+                }
+
+                // If item has a Jellyfin item ID and user is logged in, attach remote server subtitles
+                if (!this->itemId.empty()) {
+                    ASYNC_RETAIN
+                    jellyfin::getJSON<jellyfin::Detail>(
+                        [ASYNC_TOKEN, flag](const jellyfin::Detail& detail) {
+                            ASYNC_RELEASE
+                            auto& svr = AppConfig::instance().getUrl();
+                            for (const auto& src : detail.MediaSources) {
+                                for (const auto& s : src.MediaStreams) {
+                                    if (s.Type != jellyfin::streamTypeSubtitle) continue;
+                                    std::string subUrl = misc::buildSubtitleUrl(
+                                        svr, this->itemId, src.Id, s.Index, s.Codec, s.IsExternal, s.DeliveryUrl);
+                                    if (!subUrl.empty()) {
+                                        auto& mpv = MPVCore::instance();
+                                        mpv.command("sub-add", subUrl.c_str(), flag, s.DisplayTitle.c_str());
+                                    }
+                                }
+                            }
+                        },
+                        nullptr, jellyfin::apiUserItem, AppConfig::instance().getUserId(), this->itemId);
                 }
                 break;
             }
@@ -131,7 +157,7 @@ public:
             titles.push_back(mpv.getString(key));
         }
         if (titles.size() > 1) view->setList(titles, 0);
-        view->setTitie(titles.front());
+        else if (!titles.empty()) view->setTitie(titles.front());
 
         playSubscribeID = view->getPlayEvent()->subscribe([this, &mpv](int index) {
             if (index < 0 || index >= (int)titles.size()) {
@@ -145,6 +171,7 @@ public:
     }
 
 private:
+    std::string itemId;
     VideoView* view = new VideoView();
     std::string url;
     std::vector<std::string> titles;
@@ -187,6 +214,9 @@ public:
         case remote::EntryType::IMAGE:
             this->icon->setImageFromSVGRes("icon/ico-file-image.svg");
             break;
+        case remote::EntryType::BOOK:
+            this->icon->setImageFromSVGRes("icon/ico-file-book.svg");
+            break;
         case remote::EntryType::PLAYLIST:
             this->icon->setImageFromSVGRes("icon/ico-list.svg");
             break;
@@ -205,8 +235,9 @@ static std::set<std::string> videoExt = {
     ".mp4", ".mkv", ".avi", ".flv", ".mov", ".wmv", ".webm", ".rm", ".rmvb", ".mpg"};
 static std::set<std::string> audioExt = {".mp3", ".flac", ".wav", ".ogg", ".m4a", ".aac", ".wma", ".ape"};
 static std::set<std::string> imageExt = {".jpg", ".jpeg", ".png", ".bmp", ".gif", ".webp"};
+static std::set<std::string> booktExt = {".pdf", ".epub", ".mobi", ".azw3", ".txt"};
 static std::set<std::string> playlistExt = {".m3u", ".m3u8"};
-static std::set<std::string> subtitleExt = {".srt", ".ass", ".ssa", ".sub", ".smi"};
+static std::set<std::string> subtitleExt = {".srt", ".ass", ".ssa", ".sub", ".smi", ".vtt"};
 
 class FileDataSource : public RecyclingGridDataSource {
 public:
@@ -224,6 +255,8 @@ public:
                 it.type = remote::EntryType::AUDIO;
             } else if (imageExt.count(ext)) {
                 it.type = remote::EntryType::IMAGE;
+            } else if (booktExt.count(ext)) {
+                it.type = remote::EntryType::BOOK;
             } else if (subtitleExt.count(ext)) {
                 it.type = remote::EntryType::SUBTITLE;
             } else if (playlistExt.count(ext)) {
@@ -275,13 +308,21 @@ public:
         }
 
         if (item.type == remote::EntryType::IMAGE) {
+            brls::Application::pushActivity(new GalleryActivity(item.url(), client->getHeaders()));
             return;
         }
-
+#ifdef USE_MUPDF
+        if (item.type == remote::EntryType::BOOK) {
+            EBookView* view = new EBookView();
+            view->open(item.url(), 0, client->getHeaders());
+            brls::Application::pushActivity(new brls::Activity(view));
+            return;
+        }
+#endif
         if (item.type == remote::EntryType::PLAYLIST) {
             RemotePlayer* view = new RemotePlayer(item);
             MPVCore::instance().setUrl(item.url(), client->extraOption());
-            brls::Application::pushActivity(new brls::Activity(view), brls::TransitionAnimation::NONE);
+            brls::Application::pushActivity(new brls::Activity(view));
         }
     }
 
@@ -335,7 +376,8 @@ void RemoteView::push(const std::string& path) {
     this->setContent(view);
 
     ASYNC_RETAIN
-    brls::async([ASYNC_TOKEN, &path]() {
+    // path 按值捕获：submit 异步执行，引用捕获会在本函数返回后悬垂
+    ThreadPool::instance().submit([ASYNC_TOKEN, path](HTTP&) {
         try {
             auto r = client->list(path);
             brls::sync([ASYNC_TOKEN, r]() {
@@ -394,8 +436,8 @@ RecyclingGrid* RemoteView::newRecycler() {
     return view;
 }
 
-void RemoteView::play(const std::string& path, const std::string& name) {
-    RemotePlayer* view = new RemotePlayer({remote::EntryType::VIDEO, name, path});
+void RemoteView::play(const std::string& path, const std::string& name, const std::string& itemId) {
+    RemotePlayer* view = new RemotePlayer({remote::EntryType::VIDEO, name, path}, itemId);
     brls::Application::pushActivity(new brls::Activity(view), brls::TransitionAnimation::NONE);
     view->setUrl(path);
 }
